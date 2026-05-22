@@ -1,0 +1,18 @@
+@import "tailwindcss";
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+body {
+  font-family: var(--font-sans, Arial, Helvetica, sans-serif);
+}
+
+/* 隐藏 Next.js 开发模式左下角指示器 */
+#__next-build-indicator,
+.nextjs-dev-indicator {
+  display: none !important;
+}

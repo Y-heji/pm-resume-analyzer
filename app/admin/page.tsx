@@ -1,0 +1,207 @@
+"use client";
+
+import { useCallback, useState } from "react";
+import type { WaitlistEntry } from "@/lib/types";
+
+export default function AdminPage() {
+  const [key, setKey] = useState("");
+  const [authenticated, setAuthenticated] = useState(false);
+  const [entries, setEntries] = useState<WaitlistEntry[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchEntries = useCallback(async (authKey: string) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/waitlist?key=${encodeURIComponent(authKey)}`);
+      if (res.status === 401) {
+        setError("Key 不正确");
+        return;
+      }
+      if (!res.ok) throw new Error("请求失败");
+      const data = await res.json();
+      setEntries(data);
+      setAuthenticated(true);
+      sessionStorage.setItem("admin_key", authKey);
+    } catch {
+      setError("获取数据失败");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  // Try cached key on mount
+  const handleLogin = () => {
+    if (!key.trim()) return;
+    fetchEntries(key.trim());
+  };
+
+  const total = entries.length;
+  const byDirection = entries.reduce<Record<string, number>>((acc, e) => {
+    acc[e.jobDirection] = (acc[e.jobDirection] || 0) + 1;
+    return acc;
+  }, {});
+  const byStatus = entries.reduce<Record<string, number>>((acc, e) => {
+    acc[e.jobStatus] = (acc[e.jobStatus] || 0) + 1;
+    return acc;
+  }, {});
+
+  if (!authenticated) {
+    return (
+      <div className="max-w-sm mx-auto px-6 py-24">
+        <h1 className="text-xl font-bold mb-6 text-center">
+          预约管理
+        </h1>
+        <div className="space-y-4">
+          <input
+            type="password"
+            value={key}
+            onChange={(e) => setKey(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && handleLogin()}
+            placeholder="输入 Admin Key"
+            className="w-full px-4 py-2.5 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-gray-900"
+            autoFocus
+          />
+          {error && <p className="text-xs text-red-500">{error}</p>}
+          <button
+            onClick={handleLogin}
+            disabled={!key.trim() || loading}
+            className="w-full py-2.5 bg-gray-900 text-white font-medium rounded-xl hover:bg-gray-800 disabled:opacity-30 transition-colors text-sm"
+          >
+            {loading ? "验证中..." : "进入"}
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="max-w-4xl mx-auto px-6 py-10">
+      <div className="flex items-center justify-between mb-8">
+        <h1 className="text-xl font-bold">预约列表</h1>
+        <button
+          onClick={() => fetchEntries(key)}
+          className="px-4 py-2 bg-gray-100 text-gray-700 text-sm rounded-lg hover:bg-gray-200 transition-colors"
+        >
+          {loading ? "刷新中..." : "刷新"}
+        </button>
+      </div>
+
+      {/* Stats */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8">
+        <div className="bg-white rounded-xl border border-gray-200 p-4">
+          <p className="text-2xl font-bold text-gray-900">{total}</p>
+          <p className="text-xs text-gray-400 mt-1">总预约数</p>
+        </div>
+        {Object.entries(byDirection)
+          .sort(([, a], [, b]) => b - a)
+          .slice(0, 2)
+          .map(([d, c]) => (
+            <div key={d} className="bg-white rounded-xl border border-gray-200 p-4">
+              <p className="text-2xl font-bold text-gray-900">{c}</p>
+              <p className="text-xs text-gray-400 mt-1 truncate">{d}</p>
+            </div>
+          ))}
+        <div className="bg-white rounded-xl border border-gray-200 p-4">
+          <p className="text-2xl font-bold text-gray-900">{byStatus["在职看机会"] || 0}</p>
+          <p className="text-xs text-gray-400 mt-1">在职看机会</p>
+        </div>
+      </div>
+
+      {/* Distribution */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+        <div className="bg-white rounded-xl border border-gray-200 p-5">
+          <h3 className="text-sm font-semibold text-gray-700 mb-3">求职方向分布</h3>
+          <div className="space-y-2">
+            {Object.entries(byDirection)
+              .sort(([, a], [, b]) => b - a)
+              .map(([d, c]) => (
+                <div key={d} className="flex items-center justify-between text-sm">
+                  <span className="text-gray-600">{d}</span>
+                  <span className="font-medium text-gray-900">{c}</span>
+                </div>
+              ))}
+          </div>
+        </div>
+        <div className="bg-white rounded-xl border border-gray-200 p-5">
+          <h3 className="text-sm font-semibold text-gray-700 mb-3">求职状态分布</h3>
+          <div className="space-y-2">
+            {Object.entries(byStatus)
+              .sort(([, a], [, b]) => b - a)
+              .map(([s, c]) => (
+                <div key={s} className="flex items-center justify-between text-sm">
+                  <span className="text-gray-600">{s}</span>
+                  <span className="font-medium text-gray-900">{c}</span>
+                </div>
+              ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Table */}
+      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-gray-200 bg-gray-50">
+                <th className="text-left px-4 py-3 text-xs font-medium text-gray-400 uppercase">
+                  #
+                </th>
+                <th className="text-left px-4 py-3 text-xs font-medium text-gray-400 uppercase">
+                  邮箱
+                </th>
+                <th className="text-left px-4 py-3 text-xs font-medium text-gray-400 uppercase">
+                  求职方向
+                </th>
+                <th className="text-left px-4 py-3 text-xs font-medium text-gray-400 uppercase">
+                  求职状态
+                </th>
+                <th className="text-left px-4 py-3 text-xs font-medium text-gray-400 uppercase">
+                  提交时间
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {entries.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="text-center py-12 text-gray-400">
+                    暂无数据
+                  </td>
+                </tr>
+              ) : (
+                entries.map((e, i) => (
+                  <tr
+                    key={i}
+                    className="border-b border-gray-100 hover:bg-gray-50/50 transition-colors"
+                  >
+                    <td className="px-4 py-3 text-gray-400 text-xs">
+                      {total - i}
+                    </td>
+                    <td className="px-4 py-3 text-gray-900 font-medium">
+                      {e.email}
+                    </td>
+                    <td className="px-4 py-3 text-gray-600">{e.jobDirection}</td>
+                    <td className="px-4 py-3">
+                      <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-600">
+                        {e.jobStatus}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-gray-400 text-xs">
+                      {new Date(e.createdAt).toLocaleString("zh-CN", {
+                        month: "2-digit",
+                        day: "2-digit",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+}
