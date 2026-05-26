@@ -1,12 +1,25 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import type { WaitlistEntry } from "@/lib/types";
 
+interface AnalyticsSummary {
+  total: number; pageViews: number; totalWaitlist: number;
+  totalAnalysis: number; totalRewrite: number; totalPdfExport: number;
+  totalWordExport: number; learningClicks: number; jobClicks: number;
+  avgDuration: number; recent: Array<{ event: string; time: number }>;
+}
+
 export default function AdminPage() {
-  const [key, setKey] = useState("");
+  const [key, setKey] = useState(() => {
+    if (typeof window !== "undefined") {
+      return new URLSearchParams(window.location.search).get("key") || "";
+    }
+    return "";
+  });
   const [authenticated, setAuthenticated] = useState(false);
   const [entries, setEntries] = useState<WaitlistEntry[]>([]);
+  const [analytics, setAnalytics] = useState<AnalyticsSummary | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -24,6 +37,12 @@ export default function AdminPage() {
       setEntries(data);
       setAuthenticated(true);
       sessionStorage.setItem("admin_key", authKey);
+
+      // Also fetch analytics
+      fetch(`/api/analytics?key=${encodeURIComponent(authKey)}`)
+        .then((r) => r.ok ? r.json() : null)
+        .then((d) => { if (d) setAnalytics(d); })
+        .catch(() => {});
     } catch {
       setError("获取数据失败");
     } finally {
@@ -31,7 +50,14 @@ export default function AdminPage() {
     }
   }, []);
 
-  // Try cached key on mount
+  // Auto-login when URL provides key
+  useEffect(() => {
+    if (key && !authenticated) {
+      fetchEntries(key);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [key]);
+
   const handleLogin = () => {
     if (!key.trim()) return;
     fetchEntries(key.trim());
@@ -202,6 +228,54 @@ export default function AdminPage() {
           </table>
         </div>
       </div>
+
+      {/* ── Analytics Summary ── */}
+      {analytics && (
+        <div className="mt-10">
+          <h2 className="text-lg font-bold text-gray-900 mb-4">行为数据</h2>
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
+            <div className="bg-white rounded-xl border border-gray-200 p-3">
+              <p className="text-xl font-bold text-gray-900">{analytics.pageViews}</p>
+              <p className="text-[11px] text-gray-400">页面浏览</p>
+            </div>
+            <div className="bg-white rounded-xl border border-gray-200 p-3">
+              <p className="text-xl font-bold text-gray-900">{analytics.totalAnalysis}</p>
+              <p className="text-[11px] text-gray-400">完成分析</p>
+            </div>
+            <div className="bg-white rounded-xl border border-gray-200 p-3">
+              <p className="text-xl font-bold text-gray-900">{analytics.totalRewrite}</p>
+              <p className="text-[11px] text-gray-400">AI 改写</p>
+            </div>
+            <div className="bg-white rounded-xl border border-gray-200 p-3">
+              <p className="text-xl font-bold text-gray-900">{analytics.learningClicks}</p>
+              <p className="text-[11px] text-gray-400">学习路径点击</p>
+            </div>
+            <div className="bg-white rounded-xl border border-gray-200 p-3">
+              <p className="text-xl font-bold text-gray-900">{analytics.jobClicks}</p>
+              <p className="text-[11px] text-gray-400">岗位推荐点击</p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+            <div className="bg-white rounded-xl border border-gray-200 p-3">
+              <p className="text-xl font-bold text-gray-900">{analytics.totalPdfExport}</p>
+              <p className="text-[11px] text-gray-400">PDF 导出</p>
+            </div>
+            <div className="bg-white rounded-xl border border-gray-200 p-3">
+              <p className="text-xl font-bold text-gray-900">{analytics.totalWordExport}</p>
+              <p className="text-[11px] text-gray-400">Word 导出</p>
+            </div>
+            <div className="bg-white rounded-xl border border-gray-200 p-3">
+              <p className="text-xl font-bold text-gray-900">{analytics.avgDuration}s</p>
+              <p className="text-[11px] text-gray-400">平均停留</p>
+            </div>
+            <div className="bg-white rounded-xl border border-gray-200 p-3">
+              <p className="text-xl font-bold text-gray-900">{analytics.total}</p>
+              <p className="text-[11px] text-gray-400">总事件</p>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

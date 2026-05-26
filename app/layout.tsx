@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import PageTracker from "@/components/page-tracker";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -33,7 +34,7 @@ export default function RootLayout({
             PM Resume Analyzer
           </a>
         </header>
-        <main className="flex-1">{children}</main>
+        <main className="flex-1"><PageTracker>{children}</PageTracker></main>
         <footer className="text-center text-sm text-gray-400 py-6 shrink-0">
           AI 产品经理求职分析工具 · 仅供学习参考
         </footer>

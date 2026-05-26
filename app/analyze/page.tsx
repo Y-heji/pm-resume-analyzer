@@ -1,18 +1,39 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import FileUpload from "@/components/file-upload";
 import { jobDatabase, industries, searchJobs } from "@/lib/job-database";
 import { track } from "@/lib/analytics";
 
+const RESUME_CACHE_KEY = "cached_resume_text";
+const RESUME_NAME_KEY = "cached_resume_name";
+
 export default function AnalyzePage() {
   const router = useRouter();
-  const [resumeText, setResumeText] = useState<string | null>(null);
-  const [resumeFileName, setResumeFileName] = useState<string | null>(null);
+  const [resumeText, setResumeText] = useState<string | null>(() => {
+    if (typeof window !== "undefined") {
+      return sessionStorage.getItem(RESUME_CACHE_KEY) || null;
+    }
+    return null;
+  });
+  const [resumeFileName, setResumeFileName] = useState<string | null>(() => {
+    if (typeof window !== "undefined") {
+      return sessionStorage.getItem(RESUME_NAME_KEY) || null;
+    }
+    return null;
+  });
   const [jdText, setJdText] = useState("");
   const [analyzing, setAnalyzing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Persist parsed resume so user can switch JD without re-uploading
+  useEffect(() => {
+    if (resumeText) {
+      sessionStorage.setItem(RESUME_CACHE_KEY, resumeText);
+      sessionStorage.setItem(RESUME_NAME_KEY, resumeFileName || "");
+    }
+  }, [resumeText, resumeFileName]);
   const [showExamples, setShowExamples] = useState(false);
   const [searchKeyword, setSearchKeyword] = useState("");
   const [selectedIndustry, setSelectedIndustry] = useState<string>("");

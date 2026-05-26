@@ -1,45 +1,51 @@
-import { Redis } from "@upstash/redis";
 import { join } from "path";
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from "fs";
 import type { WaitlistEntry } from "./types";
+import { Redis } from "@upstash/redis";
 
-const DATA_DIR = join(process.cwd(), "data");
-const DATA_FILE = join(DATA_DIR, "waitlist.json");
-const REDIS_KEY = "waitlist:entries";
+// ── Storage path (lazy) ──
 
-function isVercel() {
-  return !!process.env.VERCEL || !!process.env.UPSTASH_REDIS_REST_URL;
+let _dataFile: string | null = null;
+function getDataFile(): string {
+  if (_dataFile) return _dataFile;
+  const dir = process.env.VERCEL ? "/tmp" : join(process.cwd(), "data");
+  if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
+  _dataFile = join(dir, "waitlist.json");
+  return _dataFile;
+}
+
+// ── Backend detection ──
+
+function hasRedis() {
+  return !!(process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN);
 }
 
 function getRedis() {
-  const url = process.env.UPSTASH_REDIS_REST_URL;
-  const token = process.env.UPSTASH_REDIS_REST_TOKEN;
-  if (!url || !token) {
-    throw new Error(
-      "UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN are required on Vercel"
-    );
-  }
-  return new Redis({ url, token });
+  return new Redis({
+    url: process.env.UPSTASH_REDIS_REST_URL!,
+    token: process.env.UPSTASH_REDIS_REST_TOKEN!,
+  });
 }
 
-// ─── Filesystem (local dev) ───
-
-function ensureDir() {
-  if (!existsSync(DATA_DIR)) mkdirSync(DATA_DIR, { recursive: true });
-}
+// ── Filesystem ──
 
 function fsRead(): WaitlistEntry[] {
-  ensureDir();
-  if (!existsSync(DATA_FILE)) return [];
-  return JSON.parse(readFileSync(DATA_FILE, "utf-8"));
+  const file = getDataFile();
+  if (!existsSync(file)) return [];
+  try {
+    return JSON.parse(readFileSync(file, "utf-8"));
+  } catch {
+    return [];
+  }
 }
 
 function fsWrite(entries: WaitlistEntry[]) {
-  ensureDir();
-  writeFileSync(DATA_FILE, JSON.stringify(entries, null, 2), "utf-8");
+  writeFileSync(getDataFile(), JSON.stringify(entries, null, 2), "utf-8");
 }
 
-// ─── Redis (Vercel production) ───
+// ── Redis ──
+
+const REDIS_KEY = "waitlist:entries";
 
 async function redisRead(): Promise<WaitlistEntry[]> {
   const redis = getRedis();
@@ -52,15 +58,15 @@ async function redisWrite(entries: WaitlistEntry[]) {
   await redis.set(REDIS_KEY, entries);
 }
 
-// ─── Public API ───
+// ── Public API ──
 
 export async function getEntries(): Promise<WaitlistEntry[]> {
-  if (isVercel()) return redisRead();
+  if (hasRedis()) return redisRead();
   return fsRead();
 }
 
 export async function addEntry(entry: WaitlistEntry): Promise<WaitlistEntry[]> {
-  if (isVercel()) {
+  if (hasRedis()) {
     const entries = await redisRead();
     entries.push(entry);
     await redisWrite(entries);

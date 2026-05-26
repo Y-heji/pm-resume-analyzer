@@ -21,24 +21,39 @@ export type EventName =
   | "rewrite_preview_viewed"
   | "unlock_cta_clicked"
   | "waitlist_submitted"
-  | "rewrite_copied";
+  | "rewrite_copied"
+  | "learning_path_click"
+  | "job_recommendation_click"
+  | "rewrite_pdf_export"
+  | "rewrite_word_export"
+  | "page_view"
+  | "page_duration";
 
 export function track(event: EventName, props?: Record<string, unknown>) {
   if (typeof window === "undefined") return;
 
   console.log(`[Analytics] ${event}`, props ?? "");
 
+  // Local cache
   try {
     const raw = sessionStorage.getItem("__analytics");
     const events: Array<{ event: string; props?: unknown; time: number }> = raw
       ? JSON.parse(raw)
       : [];
     events.push({ event, props, time: Date.now() });
-    sessionStorage.setItem(
-      "__analytics",
-      JSON.stringify(events.slice(-200))
-    );
+    sessionStorage.setItem("__analytics", JSON.stringify(events.slice(-200)));
   } catch {
-    // sessionStorage not available
+    // ignore
+  }
+
+  // Server-side log (fire-and-forget)
+  try {
+    fetch("/api/analytics", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ event, props, time: Date.now() }),
+    }).catch(() => {});
+  } catch {
+    // ignore
   }
 }

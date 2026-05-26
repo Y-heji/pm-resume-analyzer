@@ -1,4 +1,5 @@
 import type { LearningPathStep } from "@/lib/types";
+import { track } from "@/lib/analytics";
 
 const priorityMap = {
   immediate: { label: "立即", className: "bg-red-100 text-red-700", border: "border-l-red-500" },
@@ -40,7 +41,10 @@ export default function LearningPath({ steps }: { steps: LearningPathStep[] }) {
               )}
             </div>
             <div className={`flex-1 pb-6 border-l-4 ${style.border} pl-4 -ml-4`}>
-              <div className="bg-white rounded-xl p-4 border border-gray-200 shadow-sm">
+              <div
+                className="bg-white rounded-xl p-4 border border-gray-200 shadow-sm cursor-pointer hover:shadow-md transition-shadow"
+                onClick={() => track("learning_path_click", { skill: step.skill, order: step.order, priority: step.priority })}
+              >
                 <div className="flex items-center justify-between mb-3">
                   <span className="font-medium text-gray-900">{step.skill}</span>
                   <span className={`text-xs px-2 py-0.5 rounded-full ${style.className}`}>

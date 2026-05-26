@@ -15,8 +15,14 @@ export default function FileUpload({ onParsed, disabled }: Props) {
   const [error, setError] = useState<string | null>(null);
 
   async function handleFile(file: File) {
-    if (file.type !== "application/pdf") {
-      setError("请上传 PDF 格式的文件");
+    const isPdf = file.type === "application/pdf";
+    const isWord =
+      file.type ===
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ||
+      file.name.endsWith(".docx");
+
+    if (!isPdf && !isWord) {
+      setError("请上传 PDF 或 Word (.docx) 格式的文件");
       return;
     }
 
@@ -34,7 +40,7 @@ export default function FileUpload({ onParsed, disabled }: Props) {
 
       if (!response.ok) {
         const data = await response.json();
-        throw new Error(data.error || "PDF 解析失败");
+        throw new Error(data.error || "文件解析失败");
       }
 
       const data = await response.json();
@@ -65,7 +71,7 @@ export default function FileUpload({ onParsed, disabled }: Props) {
         {loading ? (
           <div className="text-gray-500">
             <div className="animate-spin w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full mx-auto mb-2" />
-            正在解析 PDF...
+            正在解析文件...
           </div>
         ) : fileName ? (
           <div className="text-green-700">
@@ -74,14 +80,14 @@ export default function FileUpload({ onParsed, disabled }: Props) {
           </div>
         ) : (
           <div className="text-gray-500">
-            <div className="text-lg mb-1">拖拽简历 PDF 到此处</div>
-            <div className="text-sm">或点击选择文件</div>
+            <div className="text-lg mb-1">拖拽简历 PDF / Word 到此处</div>
+            <div className="text-sm">支持 .pdf 和 .docx 格式</div>
           </div>
         )}
         <input
           ref={inputRef}
           type="file"
-          accept=".pdf"
+          accept=".pdf,.docx"
           className="hidden"
           onChange={(e) => {
             const file = e.target.files?.[0];

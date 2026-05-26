@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import type { JobRecommendation } from "@/lib/types";
+import { track } from "@/lib/analytics";
 
 const difficultyColor: Record<string, string> = {
   "入门": "bg-green-100 text-green-700",
@@ -69,7 +70,10 @@ function JobCard({ job, index }: { job: JobRecommendation; index: number }) {
     <div className="bg-white rounded-xl border border-gray-200 shadow-sm hover:border-blue-300 transition-colors overflow-hidden">
       <div
         className={`p-5 ${hasPath ? "cursor-pointer" : ""}`}
-        onClick={() => hasPath && setExpanded(!expanded)}
+        onClick={() => {
+          track("job_recommendation_click", { role: job.roleTitle, matchScore: job.matchScore });
+          if (hasPath) setExpanded(!expanded);
+        }}
       >
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-2">
