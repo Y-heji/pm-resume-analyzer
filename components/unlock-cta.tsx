@@ -130,6 +130,17 @@ export default function UnlockCTA({ premiumCount }: Props) {
           )}
         </div>
 
+        {/* Payment + Unlock */}
+        <div className="border-t border-gray-100 p-6 md:p-8">
+          <h4 className="text-sm font-semibold text-gray-900 mb-2">
+            立即解锁 — ￥19.9
+          </h4>
+          <p className="text-xs text-gray-500 mb-4">
+            微信/支付宝付款后获取解锁码。一次付费，永久使用。
+          </p>
+          <UnlockCodeInput />
+        </div>
+
         {/* Waitlist Form */}
         <div className="border-t border-gray-100 p-6 md:p-8 bg-gray-50/50">
           {submitted ? (
@@ -258,6 +269,57 @@ export default function UnlockCTA({ premiumCount }: Props) {
           )}
         </div>
       </div>
+    </div>
+  );
+}
+
+// ─── Inline unlock code input ──────────────────────────────────
+
+function UnlockCodeInput() {
+  const [code, setCode] = useState("");
+  const [status, setStatus] = useState<"idle" | "success" | "error">("idle");
+
+  const handleUnlock = () => {
+    const validCode = process.env.NEXT_PUBLIC_UNLOCK_CODE || "pm2026";
+    if (code.trim() === validCode) {
+      sessionStorage.setItem("unlocked", "true");
+      setStatus("success");
+      setTimeout(() => window.location.reload(), 800);
+    } else {
+      setStatus("error");
+    }
+  };
+
+  if (sessionStorage.getItem("unlocked") === "true") {
+    return (
+      <p className="text-xs text-emerald-600 font-medium">
+        &#x2713; 已解锁完整版
+      </p>
+    );
+  }
+
+  return (
+    <div className="flex gap-2">
+      <input
+        type="text"
+        value={code}
+        onChange={(e) => { setCode(e.target.value); setStatus("idle"); }}
+        onKeyDown={(e) => e.key === "Enter" && handleUnlock()}
+        placeholder="输入解锁码"
+        className="flex-1 px-3 py-2 bg-white border border-gray-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-gray-900"
+      />
+      <button
+        onClick={handleUnlock}
+        className="px-4 py-2 bg-gray-900 text-white text-xs font-medium rounded-lg hover:bg-gray-800 transition-colors shrink-0"
+      >
+        解锁
+      </button>
+      {status === "error" && (
+        <p className="text-xs text-red-500 mt-1">解锁码错误</p>
+      )}
+      {status === "success" && (
+        <p className="text-xs text-emerald-600 mt-1">解锁成功！</p>
+      )}
     </div>
   );
 }

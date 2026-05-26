@@ -1,7 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
-import { useParams, useRouter, useSearchParams } from "next/navigation";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useParams, useRouter } from "next/navigation";
 import type { RewriteResult } from "@/lib/types";
 import { track } from "@/lib/analytics";
 import RewriteSectionCard from "@/components/rewrite-section-card";
@@ -18,9 +18,18 @@ const LOADING_STEPS = [
 export default function RewritePage() {
   const params = useParams();
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const isPreview = searchParams.get("preview") === "full";
+  const [isPreview, setIsPreview] = useState(false);
   const [phase, setPhase] = useState<"loading" | "result" | "error">("loading");
+
+  // Read ?preview=full from URL OR check unlock code from sessionStorage
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const p = new URLSearchParams(window.location.search);
+      const urlPreview = p.get("preview") === "full";
+      const unlocked = sessionStorage.getItem("unlocked") === "true";
+      setIsPreview(urlPreview || unlocked);
+    }
+  }, []);
   const [loadingStep, setLoadingStep] = useState(0);
   const [result, setResult] = useState<RewriteResult | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -98,6 +107,18 @@ export default function RewritePage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Deduplicate modules once, shared by display + copy
+  const dedupedModules = useMemo(() => {
+    const raw = result?.modules || [];
+    return raw.filter((m, i, arr) => {
+      const firstTitle = arr.findIndex((x) => x.sectionTitle === m.sectionTitle);
+      if (firstTitle !== i) return false;
+      const firstOriginal = arr.findIndex((x) => x.original === m.original);
+      if (firstOriginal !== i) return false;
+      return true;
+    });
+  }, [result]);
+
   const scrollToUnlock = useCallback(() => {
     const el = document.getElementById("unlock-cta");
     if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
@@ -108,15 +129,14 @@ export default function RewritePage() {
       scrollToUnlock();
       return;
     }
+    sessionStorage.setItem(`${id}_preview`, isPreview ? "full" : "basic");
     track("rewrite_pdf_export", { analysisId: id });
     router.push(`/rewrite/${id}/preview`);
   }, [id, isPreview, scrollToUnlock, router]);
 
   const handleCopy = useCallback(async () => {
-    if (!result) return;
-    const mods = result.modules || [];
-    if (mods.length === 0) return;
-    const text = mods
+    if (dedupedModules.length === 0) return;
+    const text = dedupedModules
       .map(
         (m) =>
           `【${m.sectionTitle}】\n原文：${m.original}\n优化：${m.rewritten}\n优化维度：${m.optimizationReasons?.join("、") || ""}`
@@ -124,10 +144,10 @@ export default function RewritePage() {
       .join("\n\n");
     await navigator.clipboard.writeText(text);
     setCopied(true);
-    track("rewrite_copy", { sectionCount: mods.length });
-    track("rewrite_copied", { sectionCount: mods.length });
+    track("rewrite_copy", { sectionCount: dedupedModules.length });
+    track("rewrite_copied", { sectionCount: dedupedModules.length });
     setTimeout(() => setCopied(false), 2000);
-  }, [result]);
+  }, [dedupedModules]);
 
   const handleSectionInView = useCallback((index: number) => {
     track("rewrite_section_view", {
@@ -217,12 +237,11 @@ export default function RewritePage() {
   // ─── Result State ───
   if (!result) return null;
 
-  const modules: RewriteModule[] = result.modules || [];
-  const displayModules = isPreview ? modules : modules.slice(0, 6);
-  const premiumCount = isPreview ? 0 : Math.max(0, modules.length - 6);
+  const displayModules = isPreview ? dedupedModules : dedupedModules.slice(0, 6);
+  const premiumCount = isPreview ? 0 : Math.max(0, dedupedModules.length - 6);
 
   // Count category distribution
-  const categoryCounts = modules.reduce<Record<string, number>>(
+  const categoryCounts = dedupedModules.reduce<Record<string, number>>(
     (acc, m) => {
       acc[m.category] = (acc[m.category] || 0) + 1;
       return acc;
@@ -296,7 +315,7 @@ export default function RewritePage() {
       {/* Stats Row */}
       <div className="grid grid-cols-4 gap-3 mb-8 ml-10">
         <div className="bg-white rounded-xl border border-gray-200 p-3 text-center">
-          <p className="text-2xl font-bold text-gray-900">{modules.length}</p>
+          <p className="text-2xl font-bold text-gray-900">{dedupedModules.length}</p>
           <p className="text-[11px] text-gray-400 mt-0.5">优化模块</p>
         </div>
         <div className="bg-white rounded-xl border border-gray-200 p-3 text-center">
@@ -367,7 +386,7 @@ export default function RewritePage() {
             {/* Blurred preview of next section */}
             <div className="mt-3 p-3 bg-white/60 rounded-xl blur-[3px] select-none pointer-events-none">
               <p className="text-xs text-gray-400 text-left truncate">
-                {modules[6]?.rewritten || "..."}
+                {dedupedModules[6]?.rewritten || "..."}
               </p>
             </div>
           </div>

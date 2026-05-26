@@ -23,18 +23,14 @@ export default function ResumePreviewPage() {
   const [selectedId, setSelectedId] = useState("ai-pm");
   const [loading, setLoading] = useState(true);
   const [downloading, setDownloading] = useState(false);
+  const [showExportMenu, setShowExportMenu] = useState(false);
 
   useEffect(() => {
     const stored = sessionStorage.getItem(`${id}_rewrite`);
     if (stored) {
       try {
         const result = JSON.parse(stored);
-        if (result.finalResume) {
-          setFinalResume(result.finalResume);
-        } else {
-          // Old data format — need to re-run rewrite
-          setFinalResume(null);
-        }
+        if (result.finalResume) setFinalResume(result.finalResume);
       } catch {}
     }
     setLoading(false);
@@ -49,29 +45,47 @@ export default function ResumePreviewPage() {
     } catch {}
   }, []);
 
+  // Close export menu on outside click
+  useEffect(() => {
+    if (!showExportMenu) return;
+    const handler = (e: MouseEvent) => {
+      const t = e.target as HTMLElement;
+      if (!t.closest(".export-menu")) setShowExportMenu(false);
+    };
+    document.addEventListener("click", handler);
+    return () => document.removeEventListener("click", handler);
+  }, [showExportMenu]);
+
   const selectedTemplate = getTemplate(selectedId);
 
-  const handleDownload = useCallback(async () => {
+  const exportFile = useCallback(async (format: "pdf" | "word") => {
     if (!finalResume) return;
     setDownloading(true);
     try {
-      const res = await fetch("/api/export-pdf", {
+      const endpoint = format === "pdf" ? "/api/export-pdf" : "/api/export-word";
+      const body =
+        format === "pdf"
+          ? { finalResume, template: selectedId }
+          : { finalResume };
+      const res = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ finalResume, template: selectedId }),
+        body: JSON.stringify(body),
       });
-      if (!res.ok) throw new Error("Export failed");
-      const blob = await res.blob();
+      if (!res.ok) {
+        const errData = await res.json().catch(() => null);
+        throw new Error(errData?.error || "Export failed");
+      }
+      const buf = await res.arrayBuffer();
+      const mime =
+        format === "pdf"
+          ? "application/pdf"
+          : "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+      const blob = new Blob([buf], { type: mime });
       const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `resume-${selectedId}-${Date.now()}.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+      window.open(url, "_blank");
     } catch (err) {
-      console.error("PDF download failed:", err);
+      console.error(`${format} export failed:`, err);
     } finally {
       setDownloading(false);
     }
@@ -90,12 +104,10 @@ export default function ResumePreviewPage() {
       <div className="flex items-center justify-center min-h-screen bg-gray-200">
         <div className="text-center max-w-sm">
           <p className="text-gray-700 text-sm font-medium mb-2">简历数据不可用</p>
-          <p className="text-gray-400 text-xs mb-5 leading-relaxed">
-            请返回优化结果页，重新点击「AI 改写简历」生成最新版本。如果仍不行，请重新上传简历并完成分析→改写流程。
-          </p>
+          <p className="text-gray-400 text-xs mb-5">请返回优化结果页，重新运行 AI 改写。</p>
           <button
             onClick={() => router.push(`/rewrite/${id}`)}
-            className="px-4 py-2 bg-gray-900 text-white text-xs font-medium rounded-lg hover:bg-gray-800 transition-colors"
+            className="px-4 py-2 bg-gray-900 text-white text-xs font-medium rounded-lg hover:bg-gray-800"
           >
             返回优化结果
           </button>
@@ -106,12 +118,12 @@ export default function ResumePreviewPage() {
 
   return (
     <div className="min-h-screen bg-gray-200">
-      {/* Top bar — minimal, document-editor style */}
+      {/* Top bar */}
       <div className="sticky top-0 z-10 bg-white/80 backdrop-blur border-b border-gray-200 px-6 py-2.5 flex items-center justify-between">
         <div className="flex items-center gap-5">
           <button
             onClick={() => router.push(`/rewrite/${id}`)}
-            className="text-xs text-gray-500 hover:text-gray-900 transition-colors flex items-center gap-1"
+            className="text-xs text-gray-500 hover:text-gray-900 flex items-center gap-1"
           >
             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -122,15 +134,13 @@ export default function ResumePreviewPage() {
         </div>
 
         <div className="flex items-center gap-4">
-          {/* Template switcher — cleaner design */}
+          {/* Template switcher */}
           <div className="flex items-center gap-3">
             {TEMPLATES.map((t: ResumeTemplate) => (
               <label
                 key={t.id}
                 className={`text-xs cursor-pointer transition-colors ${
-                  selectedId === t.id
-                    ? "text-gray-900 font-medium"
-                    : "text-gray-400 hover:text-gray-600"
+                  selectedId === t.id ? "text-gray-900 font-medium" : "text-gray-400 hover:text-gray-600"
                 }`}
               >
                 <input
@@ -146,29 +156,48 @@ export default function ResumePreviewPage() {
             ))}
           </div>
 
-          <button
-            onClick={handleDownload}
-            disabled={downloading}
-            className="px-3.5 py-1.5 bg-gray-900 text-white text-xs font-medium rounded-md hover:bg-gray-800 disabled:opacity-40 transition-colors flex items-center gap-1.5"
-          >
-            {downloading ? (
-              <>
+          <div className="relative export-menu">
+            <button
+              onClick={(e) => { e.stopPropagation(); setShowExportMenu(!showExportMenu); }}
+              disabled={downloading}
+              className="px-3.5 py-1.5 bg-gray-900 text-white text-xs font-medium rounded-md hover:bg-gray-800 disabled:opacity-40 flex items-center gap-1.5"
+            >
+              {downloading ? (
                 <span className="animate-spin w-3 h-3 border-2 border-white/30 border-t-white rounded-full" />
-                Exporting...
-              </>
-            ) : (
-              <>
+              ) : (
                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                 </svg>
-                Download PDF
-              </>
+              )}
+              Export
+            </button>
+            {showExportMenu && (
+              <div className="absolute right-0 mt-1 w-36 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-20">
+                <button
+                  onClick={() => { exportFile("pdf"); setShowExportMenu(false); }}
+                  className="w-full text-left px-3 py-2 text-xs hover:bg-gray-50 flex items-center gap-2"
+                >
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                  </svg>
+                  PDF
+                </button>
+                <button
+                  onClick={() => { exportFile("word"); setShowExportMenu(false); }}
+                  className="w-full text-left px-3 py-2 text-xs hover:bg-gray-50 flex items-center gap-2"
+                >
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                  Word (.docx)
+                </button>
+              </div>
             )}
-          </button>
+          </div>
         </div>
       </div>
 
-      {/* Document canvas — full A4 page rendering, page-level scroll */}
+      {/* Document canvas */}
       <div className="py-10 flex justify-center">
         <BlobProvider
           document={<ResumePdfDocument finalResume={finalResume} template={selectedTemplate} />}
@@ -180,12 +209,14 @@ export default function ResumePreviewPage() {
               </div>
             ) : pdfError ? (
               <div className="flex items-center justify-center py-32">
-                <div className="text-center max-w-sm">
+                <div className="text-center max-w-md">
                   <p className="text-gray-700 text-sm font-medium mb-2">PDF 预览生成失败</p>
-                  <p className="text-gray-400 text-xs mb-4">请返回优化结果页重试</p>
+                  <p className="text-gray-400 text-xs mb-4 break-all">
+                    {String(pdfError)}
+                  </p>
                   <button
                     onClick={() => router.push(`/rewrite/${id}`)}
-                    className="px-4 py-2 bg-gray-900 text-white text-xs font-medium rounded-lg hover:bg-gray-800 transition-colors"
+                    className="px-4 py-2 bg-gray-900 text-white text-xs rounded-lg hover:bg-gray-800"
                   >
                     返回优化结果
                   </button>
@@ -195,10 +226,7 @@ export default function ResumePreviewPage() {
               <iframe
                 src={url}
                 className="border-0 bg-white shadow-lg"
-                style={{
-                  width: 794,
-                  minHeight: 1123,
-                }}
+                style={{ width: 794, minHeight: 1123 }}
                 title="Resume PDF Preview"
               />
             ) : null

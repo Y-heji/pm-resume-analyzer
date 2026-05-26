@@ -3,7 +3,6 @@ import {
   Page,
   Text,
   View,
-  StyleSheet,
 } from "@react-pdf/renderer";
 import type { FinalResume } from "@/lib/types";
 import type { ResumeTemplate } from "@/lib/resume-templates";
@@ -12,7 +11,7 @@ import type { ResumeTemplate } from "@/lib/resume-templates";
 
 function singleStyles(t: ResumeTemplate) {
   const pad = t.spacing.pagePadding;
-  return StyleSheet.create({
+  return {
     page: {
       padding: `${pad}pt`,
       fontFamily: t.font.family,
@@ -62,11 +61,10 @@ function singleStyles(t: ResumeTemplate) {
       lineHeight: t.layout.lineHeight,
       color: t.colors.text,
       marginBottom: t.spacing.bulletGap,
-      marginLeft: 10,
-      textIndent: -10,
+      paddingLeft: 12,
     },
     skillText: { fontSize: t.font.sizes.body, color: t.colors.muted, lineHeight: 1.5 },
-  });
+  };
 }
 
 // ─── Split (premium) styles ───────────────────────────────────
@@ -74,7 +72,7 @@ function singleStyles(t: ResumeTemplate) {
 function splitStyles(t: ResumeTemplate) {
   const sw = t.layout.sidebarWidth || 32;
   const cw = 100 - sw;
-  return StyleSheet.create({
+  return {
     page: {
       flexDirection: "row",
       fontFamily: t.font.family,
@@ -154,12 +152,11 @@ function splitStyles(t: ResumeTemplate) {
       lineHeight: t.layout.lineHeight,
       color: t.colors.text,
       marginBottom: t.spacing.bulletGap,
-      marginLeft: 10,
-      textIndent: -10,
+      paddingLeft: 12,
     },
     cEduTitle: { fontSize: t.font.sizes.body, fontWeight: 600 },
     cEduSub: { fontSize: t.font.sizes.small, color: t.colors.muted },
-  });
+  };
 }
 
 // ─── Single Column Document ───────────────────────────────────
