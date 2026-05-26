@@ -1,60 +1,129 @@
 import OpenAI from "openai";
 import type { RewriteResult } from "./types";
 
-const client = new OpenAI({
-  baseURL: "https://api.deepseek.com/v1",
-  apiKey: process.env.DEEPSEEK_API_KEY,
-});
+let _client: OpenAI | null = null;
 
-const REWRITE_SYSTEM_PROMPT = `你是资深互联网大厂产品经理面试官，精通简历优化和ATS筛选。
-你的任务是逐段改写用户简历，使其更符合目标岗位JD的要求。
+function getClient() {
+  if (!_client) {
+    _client = new OpenAI({
+      baseURL: "https://api.deepseek.com/v1",
+      apiKey: process.env.DEEPSEEK_API_KEY,
+    });
+  }
+  return _client;
+}
 
-改写原则：
-1. STAR法则：情境(Situation)→任务(Task)→行动(Action)→结果(Result)
-2. 每个要点必须有可量化数据（百分比、金额、用户数、留存率等）
-3. 嵌入岗位JD中的关键词，提高ATS匹配
-4. 使用产品经理专业术语（用户旅程、AHA时刻、北极星指标、用户心智、PMF、LTV、CAC等）
-5. 突出增长方向/数据分析/项目成果表达
-6. 删除"负责""参与""协助"等弱化描述和无意义副词
-7. 每条改写后内容必须比原文有明显冲击力提升
+// ─── System Prompt — Enhancement, not Regeneration ─────────────
 
-你必须严格返回 JSON 格式，不要输出任何 JSON 之外的内容，不要用 markdown 代码块包裹。`;
+const SYSTEM_PROMPT = `你是资深互联网大厂AI产品经理面试官。你的任务是**增强**用户的简历，而不是重写一份新简历。
 
-function buildRewritePrompt(
-  resumeText: string,
-  jdText: string
-) {
-  return `请逐段改写以下简历，使其更符合目标岗位JD。
+## 核心原则：保留用户简历身份
 
-=== 简历内容 ===
+1. **保留结构** — 用户原有的section顺序、section标题、内容组织方式必须保留。modules 输出顺序必须和用户简历从上到下一致
+2. **增强表达** — 仅优化每条描述的措辞、结构和专业度
+3. **不增删内容** — 不新增用户没有的经历，不删除用户已有的经历
+4. **不调整顺序** — modules 数组的第一个元素对应简历最上方的内容，最后一个对应简历最下方
+
+## 增强维度（每条描述优化时应用）
+
+1. **STAR结构** — 将弱化描述重组为 情境→任务→行动→结果
+2. **数据化** — 补充可量化指标（有原文依据可推断，不虚构具体金额）
+3. **ATS关键词** — 嵌入JD中的高权重技能词和行业词
+4. **AI PM术语** — 产品方法论(PMF/北极星指标/AHA时刻/用户心智)、增长词(DAU/LTV/CAC/留存)、数据词(漏斗/归因/Cohort)、AI词(推荐算法/NLP/召回/准确率/A/B实验)
+5. **专业化** — 删除"负责""参与""协助"等弱化词，用"主导""设计""推动""Owner"
+
+## 输出格式
+
+返回JSON，包含两个核心字段：
+
+1. **modules** — 增强记录（用于UI Before/After展示）
+2. **finalResume** — 完整结构化的最终简历（用于PDF渲染，Preview和Export共用）
+
+{
+  "summary": "一句话总结优化效果",
+  "atsImprovement": 数字,
+  "matchScoreImprovement": 数字,
+  "aiPmMatchEnhancement": "AI PM专业表达增强说明",
+  "modules": [
+    {
+      "sourceSection": "Work Experience·腾讯·产品负责人",
+      "sectionTitle": "增强后的显示标题",
+      "original": "简历原文",
+      "rewritten": "增强后版本(≤100字符)",
+      "optimizationReasons": ["优化点1", "优化点2", "优化点3"],
+      "category": "star | data | ats | keyword | growth | professional",
+      "scoreImprovement": { "ats": 0-10, "professionalism": 0-10, "dataDriven": 0-10 }
+    }
+  ],
+  "finalResume": {
+    "header": { "name": "姓名", "role": "职位头衔如 AI产品经理", "contact": "电话 · 邮箱 · 城市" },
+    "summary": "增强后的完整自我介绍，≤120字符",
+    "sections": [
+      {
+        "label": "工作经历",
+        "entries": [
+          { "title": "公司名 · 职位", "subtitle": "时间范围", "bullets": ["增强后bullet1", "增强后bullet2", "增强后bullet3"] }
+        ]
+      },
+      {
+        "label": "项目经历",
+        "entries": [
+          { "title": "项目名称", "subtitle": "角色/成果概述", "bullets": ["增强后bullet1", "增强后bullet2"] }
+        ]
+      }
+    ],
+    "skills": ["技能1", "技能2", "技能3"],
+    "education": { "school": "学校名", "degree": "学位", "year": "年份" }
+  }
+}
+
+**重要**：
+- finalResume 是PDF的唯一数据源，Preview和Export共用
+- sections 的 label 只用中文：工作经历、项目经历
+- header.name 从简历提取真实姓名，不要填占位符
+- 每个 bullet 必须使用增强后的版本
+
+## 长度约束
+- 每个rewritten字段≤100中文字符
+- 每个sourceSection对应的bullets≤3条
+- summary≤120字符
+- 目标：1页简历可容纳全部内容
+
+## 严禁
+- 虚构用户没有的经历或数据
+- 重组用户简历结构
+- 删除用户原有内容
+- 使用"赋能""抓手""闭环""打法"等互联网黑话
+- 堆砌AI词汇而内容空洞
+- 输出非JSON内容`;
+
+// ─── User Prompt ────────────────────────────────────────────────
+
+function buildRewritePrompt(resumeText: string, jdText: string) {
+  return `请增强以下简历，使其更符合目标岗位要求。
+
+**重要**：保留用户原有简历结构，仅增强每条内容的表达质量和专业度。
+
+=== 用户简历 ===
 ${resumeText}
 
 === 目标岗位JD ===
 ${jdText}
 
-对简历中每条可优化的经历/描述，生成一条改写记录。每条必须包含：
-- sectionTitle: 模块名（如"项目经历·XX项目"）
-- original: 修改前原文
-- rewritten: 修改后版本（STAR结构 + 量化数据 + JD关键词）
-- reason: 修改原因（1-2句，说明改了什么维度）
-- category: 优化维度，可选值：star（STAR结构）、data（数据化）、ats（ATS关键词）、keyword（PM专业术语）、growth（增长表达）、professional（专业化）
+请逐条增强简历中的每个point，输出6-12条增强记录。
 
-返回 JSON：
-{
-  "summary": "顶部总结语，一句话说明优化效果",
-  "sections": [
-    {
-      "sectionTitle": "项目经历·智能客服系统优化",
-      "original": "负责用户反馈收集和优化",
-      "rewritten": "主导智能客服系统V3迭代，通过用户行为漏斗分析定位关键流失节点，优化意图识别模型训练数据标注流程，将准确率从72%提升至89%，月均减少人工客服成本12万元",
-      "reason": "STAR结构完整（迭代→分析→优化→结果）；嵌入AI/数据关键词；量化业务影响",
-      "category": "star"
-    }
-  ]
+**严格按用户简历从上到下的顺序**输出modules——即resume最上面的内容先输出，最下面的内容后输出。这个顺序很重要，PDF会直接使用这个顺序渲染。
+
+优先增强：
+1. Work Experience 和 Project Experience 描述
+2. Self Introduction
+3. Skills（增强为"技能→应用场景→产出"的表达）
+4. 任何缺少数据的描述
+
+每条增强的sourceSection必须明确指出该内容的原始位置。`;
 }
 
-请输出 5-8 条改写记录，覆盖不同的优化维度。`;
-}
+// ─── JSON Extractor ─────────────────────────────────────────────
 
 function extractJson(text: string): string {
   const codeBlockMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/);
@@ -66,6 +135,8 @@ function extractJson(text: string): string {
   return text.slice(firstBrace, lastBrace + 1);
 }
 
+// ─── Main Export ────────────────────────────────────────────────
+
 export async function rewriteResume(
   resumeText: string,
   jdText: string
@@ -74,17 +145,14 @@ export async function rewriteResume(
 
   for (let attempt = 0; attempt < 2; attempt++) {
     try {
-      const response = await client.chat.completions.create({
+      const response = await getClient().chat.completions.create({
         model: "deepseek-chat",
         messages: [
-          { role: "system", content: REWRITE_SYSTEM_PROMPT },
-          {
-            role: "user",
-            content: buildRewritePrompt(resumeText, jdText),
-          },
+          { role: "system", content: SYSTEM_PROMPT },
+          { role: "user", content: buildRewritePrompt(resumeText, jdText) },
         ],
-        temperature: 0.4,
-        max_tokens: 8000,
+        temperature: 0.35,
+        max_tokens: 12000,
       });
 
       const text = response.choices[0]?.message?.content || "";
@@ -93,19 +161,58 @@ export async function rewriteResume(
 
       if (
         !parsed.summary ||
-        !Array.isArray(parsed.sections) ||
-        parsed.sections.length === 0
+        !Array.isArray(parsed.modules) ||
+        parsed.modules.length === 0
       ) {
         throw new Error("Response missing required fields");
       }
+
+      for (const m of parsed.modules) {
+        if (
+          !m.sourceSection ||
+          !m.sectionTitle ||
+          !m.original ||
+          !m.rewritten ||
+          !Array.isArray(m.optimizationReasons) ||
+          m.optimizationReasons.length === 0
+        ) {
+          throw new Error(`Module missing required fields`);
+        }
+      }
+
+      // Build backward-compatible sections
+      const sections = parsed.modules.map((m: Record<string, unknown>) => ({
+        sectionTitle: String(m.sectionTitle),
+        original: String(m.original),
+        rewritten: String(m.rewritten),
+        reason:
+          Array.isArray(m.optimizationReasons) && m.optimizationReasons.length > 0
+            ? String(m.optimizationReasons[0])
+            : "",
+        category: String(m.category || "professional"),
+      }));
+
+      // Parse finalResume — the single source of truth for PDF rendering
+      if (!parsed.finalResume || !parsed.finalResume.header) {
+        throw new Error("AI 未返回完整简历数据 (finalResume 缺失)，请重试");
+      }
+      const finalResume = parsed.finalResume;
 
       return {
         id: crypto.randomUUID(),
         createdAt: new Date().toISOString(),
         summary: parsed.summary,
+        atsImprovement: typeof parsed.atsImprovement === "number" ? parsed.atsImprovement : 0,
+        matchScoreImprovement:
+          typeof parsed.matchScoreImprovement === "number"
+            ? parsed.matchScoreImprovement
+            : 0,
+        aiPmMatchEnhancement: parsed.aiPmMatchEnhancement || "",
         resumeDigest: { name: "", yearsOfExperience: 0, currentRole: "", topSkills: [], education: "" },
         jdDigest: { companyName: "", roleTitle: "", requiredSkills: [], niceToHaveSkills: [], experienceRequirement: "", educationRequirement: "" },
-        sections: parsed.sections,
+        sections,
+        modules: parsed.modules,
+        finalResume,
       };
     } catch (err) {
       lastError = err as Error;

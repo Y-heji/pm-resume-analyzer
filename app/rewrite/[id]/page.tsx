@@ -1,10 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import type { RewriteResult } from "@/lib/types";
 import { track } from "@/lib/analytics";
 import RewriteSectionCard from "@/components/rewrite-section-card";
+import type { RewriteModule } from "@/lib/types";
 import UnlockCTA from "@/components/unlock-cta";
 
 const LOADING_STEPS = [
@@ -17,6 +18,8 @@ const LOADING_STEPS = [
 export default function RewritePage() {
   const params = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const isPreview = searchParams.get("preview") === "full";
   const [phase, setPhase] = useState<"loading" | "result" | "error">("loading");
   const [loadingStep, setLoadingStep] = useState(0);
   const [result, setResult] = useState<RewriteResult | null>(null);
@@ -69,13 +72,15 @@ export default function RewritePage() {
       .then((data: RewriteResult) => {
         setResult(data);
         setPhase("result");
+        sessionStorage.setItem(`${id}_rewrite`, JSON.stringify(data));
+        const moduleCount = (data.modules || data.sections || []).length;
         track("rewrite_complete", {
           analysisId: id,
-          sectionCount: data.sections.length,
+          sectionCount: moduleCount,
         });
         track("rewrite_preview_viewed", {
           analysisId: id,
-          sectionCount: data.sections.length,
+          sectionCount: moduleCount,
         });
       })
       .catch((err) => {
@@ -93,18 +98,34 @@ export default function RewritePage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const scrollToUnlock = useCallback(() => {
+    const el = document.getElementById("unlock-cta");
+    if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+  }, []);
+
+  const handleExportPdf = useCallback(() => {
+    if (!isPreview) {
+      scrollToUnlock();
+      return;
+    }
+    track("rewrite_pdf_export", { analysisId: id });
+    router.push(`/rewrite/${id}/preview`);
+  }, [id, isPreview, scrollToUnlock, router]);
+
   const handleCopy = useCallback(async () => {
     if (!result) return;
-    const text = result.sections
+    const mods = result.modules || [];
+    if (mods.length === 0) return;
+    const text = mods
       .map(
-        (s) =>
-          `【${s.sectionTitle}】\n原文：${s.original}\n优化：${s.rewritten}\n原因：${s.reason}`
+        (m) =>
+          `【${m.sectionTitle}】\n原文：${m.original}\n优化：${m.rewritten}\n优化维度：${m.optimizationReasons?.join("、") || ""}`
       )
       .join("\n\n");
     await navigator.clipboard.writeText(text);
     setCopied(true);
-    track("rewrite_copy", { sectionCount: result.sections.length });
-    track("rewrite_copied", { sectionCount: result.sections.length });
+    track("rewrite_copy", { sectionCount: mods.length });
+    track("rewrite_copied", { sectionCount: mods.length });
     setTimeout(() => setCopied(false), 2000);
   }, [result]);
 
@@ -196,13 +217,14 @@ export default function RewritePage() {
   // ─── Result State ───
   if (!result) return null;
 
-  const freeSections = result.sections.slice(0, 5);
-  const premiumCount = Math.max(0, result.sections.length - 5);
+  const modules: RewriteModule[] = result.modules || [];
+  const displayModules = isPreview ? modules : modules.slice(0, 6);
+  const premiumCount = isPreview ? 0 : Math.max(0, modules.length - 6);
 
   // Count category distribution
-  const categoryCounts = result.sections.reduce<Record<string, number>>(
-    (acc, s) => {
-      acc[s.category] = (acc[s.category] || 0) + 1;
+  const categoryCounts = modules.reduce<Record<string, number>>(
+    (acc, m) => {
+      acc[m.category] = (acc[m.category] || 0) + 1;
       return acc;
     },
     {}
@@ -233,10 +255,48 @@ export default function RewritePage() {
         <p className="text-sm text-gray-500 ml-10">{result.summary}</p>
       </div>
 
+      {/* Improvement Scores */}
+      <div className="grid grid-cols-2 gap-3 mb-6 ml-10">
+        <div className="bg-white rounded-xl border border-gray-200 p-4">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs text-gray-500">ATS 匹配度提升</span>
+            <span className="text-lg font-bold text-emerald-600">+{result.atsImprovement}%</span>
+          </div>
+          <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
+            <div
+              className="h-full bg-emerald-500 rounded-full transition-all"
+              style={{ width: `${Math.min(result.atsImprovement, 100)}%` }}
+            />
+          </div>
+        </div>
+        <div className="bg-white rounded-xl border border-gray-200 p-4">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs text-gray-500">岗位匹配度提升</span>
+            <span className="text-lg font-bold text-blue-600">+{result.matchScoreImprovement}%</span>
+          </div>
+          <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
+            <div
+              className="h-full bg-blue-500 rounded-full transition-all"
+              style={{ width: `${Math.min(result.matchScoreImprovement, 100)}%` }}
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* AI PM Enhancement Summary */}
+      {result.aiPmMatchEnhancement && (
+        <div className="ml-10 mb-8 p-3.5 bg-gradient-to-r from-violet-50 to-blue-50 border border-violet-100 rounded-xl">
+          <span className="text-[11px] font-semibold text-violet-600 uppercase tracking-wider">
+            AI PM 专业表达增强
+          </span>
+          <p className="text-sm text-gray-700 mt-1">{result.aiPmMatchEnhancement}</p>
+        </div>
+      )}
+
       {/* Stats Row */}
       <div className="grid grid-cols-4 gap-3 mb-8 ml-10">
         <div className="bg-white rounded-xl border border-gray-200 p-3 text-center">
-          <p className="text-2xl font-bold text-gray-900">{result.sections.length}</p>
+          <p className="text-2xl font-bold text-gray-900">{modules.length}</p>
           <p className="text-[11px] text-gray-400 mt-0.5">优化模块</p>
         </div>
         <div className="bg-white rounded-xl border border-gray-200 p-3 text-center">
@@ -259,16 +319,21 @@ export default function RewritePage() {
         </div>
       </div>
 
-      {/* Section Cards */}
+      {/* Module Cards */}
       <div className="space-y-5">
-        {freeSections.map((section, i) => (
-          <RewriteSectionCard
-            key={i}
-            section={section}
-            index={i}
-            onInView={() => handleSectionInView(i)}
-          />
-        ))}
+        {displayModules.map((mod, i) => {
+          const isLocked = !isPreview && i >= 6;
+          return (
+            <RewriteSectionCard
+              key={i}
+              module={mod}
+              index={i}
+              onInView={() => handleSectionInView(i)}
+              locked={isLocked}
+              onUnlock={scrollToUnlock}
+            />
+          );
+        })}
       </div>
 
       {/* Premium Teaser */}
@@ -302,7 +367,7 @@ export default function RewritePage() {
             {/* Blurred preview of next section */}
             <div className="mt-3 p-3 bg-white/60 rounded-xl blur-[3px] select-none pointer-events-none">
               <p className="text-xs text-gray-400 text-left truncate">
-                {result.sections[5]?.rewritten || "..."}
+                {modules[6]?.rewritten || "..."}
               </p>
             </div>
           </div>
@@ -310,11 +375,32 @@ export default function RewritePage() {
       )}
 
       {/* Unlock CTA + Waitlist Form */}
-      <UnlockCTA premiumCount={premiumCount} />
+      <div id="unlock-cta">
+        <UnlockCTA premiumCount={premiumCount} />
+      </div>
 
       {/* Bottom Actions */}
       <div className="mt-10 space-y-3">
         <div className="flex gap-3 justify-center">
+          <button
+            onClick={handleExportPdf}
+            className={`px-5 py-2.5 text-sm font-medium rounded-xl transition-colors inline-flex items-center gap-2 ${
+              isPreview
+                ? "bg-gray-900 text-white hover:bg-gray-800"
+                : "bg-white border border-gray-300 text-gray-700 hover:bg-gray-50"
+            }`}
+          >
+            {isPreview ? (
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+            ) : (
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+              </svg>
+            )}
+            预览并导出 PDF
+          </button>
           <button
             onClick={handleCopy}
             className="px-5 py-2.5 bg-gray-900 text-white text-sm font-medium rounded-xl hover:bg-gray-800 transition-colors inline-flex items-center gap-2"

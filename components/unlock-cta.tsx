@@ -4,12 +4,14 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { track } from "@/lib/analytics";
 
 const FULL_VERSION_FEATURES = [
-  { icon: "&#x1F4DD;", label: "AI PM 项目经历重写" },
-  { icon: "&#x1F3AF;", label: "ATS 关键词增强" },
-  { icon: "&#x1F4C8;", label: "数据化表达优化" },
-  { icon: "&#x2B50;", label: "STAR 结构优化" },
-  { icon: "&#x1F9E0;", label: "AI 行业术语优化" },
-  { icon: "&#x1F3A4;", label: "面试表达优化" },
+  { icon: "&#x1F4DD;", label: "完整项目经历 AI 重写" },
+  { icon: "&#x1F3AF;", label: "ATS 关键词全面注入" },
+  { icon: "&#x1F4C8;", label: "数据化表达增强" },
+  { icon: "&#x2B50;", label: "STAR 结构完整优化" },
+  { icon: "&#x1F9E0;", label: "AI PM 行业术语增强" },
+  { icon: "&#x1F4CA;", label: "增长与数据驱动表达" },
+  { icon: "&#x1F4BC;", label: "工作经验专业化改写" },
+  { icon: "&#x1F4E4;", label: "导出专业 PDF 简历" },
 ];
 
 const JOB_DIRECTIONS = ["AI PM", "产品经理", "数据分析", "运营", "技术转PM", "其他"];
@@ -100,10 +102,10 @@ export default function UnlockCTA({ premiumCount }: Props) {
         {/* Feature checklist */}
         <div className="p-6 md:p-8">
           <h3 className="text-lg font-bold text-gray-900 mb-1">
-            完整 AI 优化版包含
+            解锁完整 AI 优化版
           </h3>
           <p className="text-sm text-gray-500 mb-5">
-            当前仅展示部分预览。完整版将覆盖简历所有模块。
+            当前仅展示前 6 个模块。完整版覆盖所有改写维度 + 导出专业 PDF。
           </p>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 mb-2">

@@ -1,10 +1,17 @@
 import OpenAI from "openai";
 import type { AnalysisResult } from "./types";
 
-const client = new OpenAI({
-  baseURL: "https://api.deepseek.com/v1",
-  apiKey: process.env.DEEPSEEK_API_KEY,
-});
+let _client: OpenAI | null = null;
+
+function getClient() {
+  if (!_client) {
+    _client = new OpenAI({
+      baseURL: "https://api.deepseek.com/v1",
+      apiKey: process.env.DEEPSEEK_API_KEY,
+    });
+  }
+  return _client;
+}
 
 const LEARNING_PATH_GUIDE = `learningPath 中每条 resource 必须包含具体的学习渠道，格式：平台/渠道名 - 创作者/作者 - 课程/书名 - 一句话说明。例如：
 "B站 - 王树义老师 -《产品经理从入门到精通》系列 - 覆盖需求分析和PRD撰写基础"
@@ -88,7 +95,7 @@ export async function analyzeResume(
 
   for (let attempt = 0; attempt < 2; attempt++) {
     try {
-      const response = await client.chat.completions.create({
+      const response = await getClient().chat.completions.create({
         model: "deepseek-chat",
         messages: [
           { role: "system", content: SYSTEM_PROMPT },

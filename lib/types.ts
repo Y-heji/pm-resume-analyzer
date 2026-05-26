@@ -73,6 +73,12 @@ export type RewriteCategory =
   | "growth"
   | "professional";
 
+export interface ScoreImprovement {
+  ats: number;
+  professionalism: number;
+  dataDriven: number;
+}
+
 export interface RewriteSection {
   sectionTitle: string;
   original: string;
@@ -81,13 +87,43 @@ export interface RewriteSection {
   category: RewriteCategory;
 }
 
+export interface RewriteModule {
+  sourceSection: string;
+  sectionTitle: string;
+  original: string;
+  rewritten: string;
+  optimizationReasons: string[];
+  category: RewriteCategory;
+  scoreImprovement: ScoreImprovement;
+}
+
+/** Complete structured resume — single source of truth for PDF rendering */
+export interface ResumeEntry {
+  title: string;
+  subtitle?: string;
+  bullets: string[];
+}
+
+export interface FinalResume {
+  header: { name: string; role: string; contact: string };
+  summary: string;
+  sections: { label: string; entries: ResumeEntry[] }[];
+  skills: string[];
+  education: { school: string; degree: string; year?: string };
+}
+
 export interface RewriteResult {
   id: string;
   createdAt: string;
   summary: string;
+  atsImprovement: number;
+  matchScoreImprovement: number;
+  aiPmMatchEnhancement: string;
   resumeDigest: ResumeDigest;
   jdDigest: JdDigest;
   sections: RewriteSection[];
+  modules: RewriteModule[];
+  finalResume: FinalResume;
 }
 
 export interface WaitlistEntry {

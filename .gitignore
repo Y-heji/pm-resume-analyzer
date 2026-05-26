@@ -46,3 +46,15 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# fonts (large files, downloaded separately)
+/public/fonts/
+
+# local claude settings
+.claude/settings.local.json
+
+# test artifacts
+test-*.pdf
+verify.pdf
+
+.vercel
