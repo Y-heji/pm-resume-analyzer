@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  serverExternalPackages: ["pdfjs-dist", "@react-pdf/renderer", "better-sqlite3"],
+  serverExternalPackages: ["pdfjs-dist", "@react-pdf/renderer"],
   typescript: {
     ignoreBuildErrors: true,
   },
