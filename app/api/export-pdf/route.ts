@@ -1,51 +1,22 @@
 import { NextResponse } from "next/server";
-import { renderToBuffer, Font } from "@react-pdf/renderer";
+import { renderToBuffer } from "@react-pdf/renderer";
 import { createElement } from "react";
-import fs from "fs";
-import path from "path";
-import ResumePdfDocument from "@/components/resume-pdf-document";
-
-let fontRegistered = false;
-
-function ensureFont() {
-  if (fontRegistered) return;
-  const dir = path.join(process.cwd(), "public", "fonts");
-  const regularPath = path.join(dir, "NotoSansSC.otf");
-  const boldPath = path.join(dir, "NotoSansSC-Bold.otf");
-
-  if (!fs.existsSync(regularPath)) {
-    console.warn("Font not found at", regularPath);
-    return;
-  }
-
-  const fonts: { src: string; fontWeight?: number }[] = [{ src: regularPath }];
-  if (fs.existsSync(boldPath)) {
-    fonts.push({ src: boldPath, fontWeight: 700 });
-  }
-
-  Font.register({ family: "Noto Sans SC", fonts });
-  // Register bold variant
-  if (fs.existsSync(boldPath)) {
-    Font.register({
-      family: "Noto Sans SC-Bold",
-      fonts: [{ src: boldPath }],
-    });
-  }
-  fontRegistered = true;
-}
+import { registerServerFonts, resolveTemplate } from "@/components/pdf-templates";
 
 export async function POST(req: Request) {
   try {
-    const { finalResume, deepAnalysis } = await req.json();
+    const { finalResume, deepAnalysis, templateId } = await req.json();
 
     if (!finalResume) {
       return NextResponse.json({ error: "缺少简历数据" }, { status: 400 });
     }
 
-    ensureFont();
+    registerServerFonts();
+
+    const TemplateComponent = await resolveTemplate(templateId || "tech");
 
     const pdfBuffer = await renderToBuffer(
-      createElement(ResumePdfDocument, { finalResume, deepAnalysis: deepAnalysis || undefined })
+      createElement(TemplateComponent, { finalResume, deepAnalysis: deepAnalysis || undefined })
     );
 
     return new NextResponse(pdfBuffer, {

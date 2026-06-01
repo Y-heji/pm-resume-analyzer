@@ -11,18 +11,19 @@ const RESUME_NAME_KEY = "cached_resume_name";
 
 export default function AnalyzePage() {
   const router = useRouter();
-  const [resumeText, setResumeText] = useState<string | null>(() => {
-    if (typeof window !== "undefined") {
-      return sessionStorage.getItem(RESUME_CACHE_KEY) || null;
+  const [resumeText, setResumeText] = useState<string | null>(null);
+  const [resumeFileName, setResumeFileName] = useState<string | null>(null);
+  const [resumeLoaded, setResumeLoaded] = useState(false);
+
+  // Load cached resume on client mount (avoids hydration mismatch)
+  useEffect(() => {
+    const cached = sessionStorage.getItem(RESUME_CACHE_KEY);
+    if (cached) {
+      setResumeText(cached);
+      setResumeFileName(sessionStorage.getItem(RESUME_NAME_KEY) || null);
     }
-    return null;
-  });
-  const [resumeFileName, setResumeFileName] = useState<string | null>(() => {
-    if (typeof window !== "undefined") {
-      return sessionStorage.getItem(RESUME_NAME_KEY) || null;
-    }
-    return null;
-  });
+    setResumeLoaded(true);
+  }, []);
   const [jdText, setJdText] = useState("");
   const [analyzing, setAnalyzing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -47,51 +48,58 @@ export default function AnalyzePage() {
   const recommendedFromResume = useMemo(() => {
     if (!resumeText) return [];
     const text = resumeText.toLowerCase();
-    // Extract keywords from resume: role titles, skills, industries, tools
-    const roleKeywords = [
-      "产品经理","产品助理","产品总监","产品运营","产品负责人","产品实习生",
-      "前端","后端","全栈","Java","Python","Go","React","Vue","Node",
-      "算法工程师","AI","大模型","机器学习","深度学习","NLP","CV",
-      "数据分析","数据工程师","数据科学家","商业分析",
-      "UI","UX","交互设计","视觉设计","平面设计",
-      "运营","用户运营","内容运营","社群运营","电商运营","直播运营",
-      "项目经理","技术经理","技术总监","CTO","架构师",
-      "测试","QA","质量","运维","DevOps","SRE",
-      "销售","市场","品牌","广告","新媒体","自媒体",
-      "行政","人事","HR","HRBP","招聘","财务","会计","法务","律师",
-      "教师","老师","讲师","培训","教授","助教",
-      "医生","护士","药剂","检验","康复","护理",
-      "客户成功","客服","售后","咨询顾问",
-      "实习","应届","管培","培训生",
-      "Android","iOS","Flutter","移动端","小程序",
-    ];
-    const matchedTitles = new Set<string>();
-    for (const kw of roleKeywords) {
-      if (text.includes(kw.toLowerCase())) {
-        // Find matching jobs
-        jobDatabase.forEach(j => {
-          if (j.title.toLowerCase().includes(kw.toLowerCase()) || j.jd.toLowerCase().includes(kw.toLowerCase())) {
-            matchedTitles.add(j.title);
-          }
-        });
+
+    // Score every job against the resume text
+    const scored = jobDatabase.map(job => {
+      let score = 0;
+      const jd = job.jd.toLowerCase();
+      const title = job.title.toLowerCase();
+
+      // Title keywords (split by common separators)
+      const titleWords = title.split(/[\s\/·\-\(\)（）]+/).filter(w => w.length >= 2);
+      for (const w of titleWords) {
+        if (text.includes(w)) score += 8;
       }
-    }
-    // Get full job entries for matched titles, deduplicate
+
+      // Full job title match
+      if (text.includes(title)) score += 20;
+
+      // Industry match
+      const ind = job.industry.replace(/.*[-/]/, "").toLowerCase();
+      if (text.includes(ind)) score += 5;
+
+      // JD keywords that appear in resume
+      const jdWords = jd.replace(/[【】「」（）\d.k-wK-W\s]+/g, " ").split(/[\s,，、。；;：:！!？?]+/).filter(w => w.length >= 2);
+      for (const w of jdWords) {
+        if (text.includes(w)) score += 1;
+      }
+
+      // Seniority detection
+      const years = text.match(/(\d+)[\s-]*年/);
+      if (years) {
+        const y = parseInt(years[1]);
+        if (y <= 1 && (title.includes("实习") || title.includes("助理") || title.includes("初级") || title.includes("培训生") || title.includes("应届"))) score += 10;
+        if (y >= 5 && (title.includes("高级") || title.includes("资深") || title.includes("总监") || title.includes("经理") || title.includes("负责人"))) score += 10;
+        if (y >= 8 && (title.includes("总监") || title.includes("VP") || title.includes("首席") || title.includes("CTO") || title.includes("合伙人"))) score += 10;
+      }
+
+      return { job, score };
+    });
+
+    // Sort by score, deduplicate by title, return top 6
     const seen = new Set<string>();
     const results: typeof jobDatabase = [];
-    for (const title of matchedTitles) {
-      const jobs = jobDatabase.filter(j => j.title === title);
-      for (const j of jobs) {
-        const key = j.title + j.industry;
-        if (!seen.has(key)) { seen.add(key); results.push(j); }
+    scored.sort((a, b) => b.score - a.score);
+    for (const { job, score } of scored) {
+      if (score < 5) continue; // skip irrelevant
+      const key = job.title;
+      if (!seen.has(key)) {
+        seen.add(key);
+        results.push(job);
+        if (results.length >= 6) break;
       }
     }
-    // Also add experience-level variants
-    if (text.includes("实习") || text.includes("应届")) {
-      const entry = jobDatabase.filter(j => j.title.includes("实习") || j.title.includes("培训生") || j.title.includes("管培"));
-      entry.forEach(j => { const k = j.title+j.industry; if (!seen.has(k)) { seen.add(k); results.push(j); } });
-    }
-    return results.slice(0, 6);
+    return results;
   }, [resumeText]);
 
   const isPaid = typeof window !== "undefined" && sessionStorage.getItem("unlocked") === "true";
@@ -272,8 +280,8 @@ export default function AnalyzePage() {
             </div>
           )}
 
-          {/* Resume-based quick picks (when search panel closed) */}
-          {!showExamples && recommendedFromResume.length > 0 && (
+          {/* Resume-based quick picks (client-only, when search panel closed) */}
+          {resumeLoaded && !showExamples && recommendedFromResume.length > 0 && (
             <div className="mb-2 flex items-center gap-2 flex-wrap">
               <span className="text-[11px] text-gray-400 shrink-0">根据简历推荐：</span>
               {recommendedFromResume.slice(0, 4).map((job) => (

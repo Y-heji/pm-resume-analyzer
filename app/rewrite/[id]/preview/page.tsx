@@ -4,8 +4,7 @@ import { useEffect, useState, useCallback, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import type { FinalResume } from "@/lib/types";
-import { Font } from "@react-pdf/renderer";
-import ResumePdfDocument from "@/components/resume-pdf-document";
+import { TemplateDispatcher, registerClientFonts, getTemplateIds } from "@/components/pdf-templates";
 
 const BlobProvider = dynamic(
   () => import("@react-pdf/renderer").then((mod) => mod.BlobProvider),
@@ -24,6 +23,7 @@ export default function ResumePreviewPage() {
   const [showExportMenu, setShowExportMenu] = useState(false);
   const [exportError, setExportError] = useState<string | null>(null);
   const pdfBlobRef = useRef<Blob | null>(null);
+  const [templateId, setTemplateId] = useState<string>("tech");
 
   useEffect(() => {
     const stored = sessionStorage.getItem(`${id}_rewrite`);
@@ -44,21 +44,7 @@ export default function ResumePreviewPage() {
     setLoading(false);
   }, [id]);
 
-  useEffect(() => {
-    try {
-      Font.register({
-        family: "Noto Sans SC",
-        fonts: [
-          { src: "/fonts/NotoSansSC.otf" },
-          { src: "/fonts/NotoSansSC-Bold.otf", fontWeight: 700 },
-        ],
-      });
-      Font.register({
-        family: "Noto Sans SC-Bold",
-        fonts: [{ src: "/fonts/NotoSansSC-Bold.otf" }],
-      });
-    } catch {}
-  }, []);
+  useEffect(() => { registerClientFonts(); }, []);
 
   // Close export menu on outside click
   useEffect(() => {
@@ -153,6 +139,23 @@ export default function ResumePreviewPage() {
             Back
           </button>
           <span className="text-xs font-medium text-gray-900">Resume Preview</span>
+
+          {/* Template selector */}
+          <div className="flex items-center gap-1 ml-4">
+            {getTemplateIds().map((tid) => (
+              <button
+                key={tid}
+                onClick={() => setTemplateId(tid)}
+                className={`text-[11px] px-2 py-1 rounded-md transition-colors ${
+                  templateId === tid
+                    ? "bg-gray-900 text-white"
+                    : "text-gray-500 hover:text-gray-700 hover:bg-gray-100"
+                }`}
+              >
+                {tid === "tech" ? "Tech" : tid === "professional" ? "Professional" : "Creative"}
+              </button>
+            ))}
+          </div>
         </div>
 
         <div className="flex items-center gap-4">
@@ -203,38 +206,15 @@ export default function ResumePreviewPage() {
       {/* Document canvas */}
       <div className="py-10 flex justify-center">
         <BlobProvider
-          document={<ResumePdfDocument finalResume={finalResume} deepAnalysis={deepAnalysis} />}
+          document={<TemplateDispatcher templateId={templateId} finalResume={finalResume} deepAnalysis={deepAnalysis} />}
         >
           {({ url, blob, loading: pdfLoading, error: pdfError }) => {
             if (blob) pdfBlobRef.current = blob;
-            return pdfLoading ? (
-              <div className="flex items-center justify-center py-32">
-                <div className="animate-spin w-6 h-6 border-2 border-gray-400 border-t-gray-700 rounded-full" />
-              </div>
-            ) : pdfError ? (
-              <div className="flex items-center justify-center py-32">
-                <div className="text-center max-w-md">
-                  <p className="text-gray-700 text-sm font-medium mb-2">PDF 预览生成失败</p>
-                  <p className="text-gray-400 text-xs mb-4 break-all">
-                    {String(pdfError)}
-                  </p>
-                  <button
-                    onClick={() => router.push(`/rewrite/${id}`)}
-                    className="px-4 py-2 bg-gray-900 text-white text-xs rounded-lg hover:bg-gray-800"
-                  >
-                    返回优化结果
-                  </button>
-                </div>
-              </div>
-            ) : url ? (
-              <iframe
-                src={url}
-                className="border-0 bg-white shadow-lg"
-                style={{ width: 794, minHeight: 1123 }}
-                title="Resume PDF Preview"
-              />
-            ) : null
-          }
+            if (pdfLoading) return <div className="flex items-center justify-center py-32"><div className="animate-spin w-6 h-6 border-2 border-gray-400 border-t-gray-700 rounded-full" /></div>;
+            if (pdfError) return <div className="flex items-center justify-center py-32"><div className="text-center max-w-md"><p className="text-gray-700 text-sm font-medium mb-2">PDF 预览生成失败</p><p className="text-gray-400 text-xs mb-4 break-all">{String(pdfError)}</p><button onClick={() => router.push(`/rewrite/${id}`)} className="px-4 py-2 bg-gray-900 text-white text-xs rounded-lg hover:bg-gray-800">返回优化结果</button></div></div>;
+            if (url) return <iframe src={url} className="border-0 bg-white shadow-lg" style={{ width: 794, minHeight: 1123 }} title="Resume PDF Preview" />;
+            return null;
+          }}
         </BlobProvider>
       </div>
     </div>
