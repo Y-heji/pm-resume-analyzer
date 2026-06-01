@@ -3,7 +3,7 @@ import { analyzeResume } from "@/lib/ai";
 
 export async function POST(req: Request) {
   try {
-    const { resumeText, jdText } = await req.json();
+    const { resumeText, jdText, deep } = await req.json();
 
     if (!resumeText || !jdText) {
       return NextResponse.json(
@@ -26,7 +26,7 @@ export async function POST(req: Request) {
       );
     }
 
-    const result = await analyzeResume(resumeText, jdText);
+    const result = await analyzeResume(resumeText, jdText, deep === true);
     return NextResponse.json(result);
   } catch (err) {
     const message =

@@ -1,5 +1,10 @@
 import Link from "next/link";
 
+const hotSearches = [
+  "AI产品经理", "产品经理", "前端开发", "后端开发",
+  "数据分析", "运营", "UI设计师", "销售", "会计", "HR实习",
+];
+
 export default function Home() {
   return (
     <div className="max-w-3xl mx-auto px-6 py-16 text-center">
@@ -16,6 +21,18 @@ export default function Home() {
       >
         免费开始分析
       </Link>
+
+      <div className="flex flex-wrap justify-center gap-2 mt-6 max-w-xl mx-auto">
+        {hotSearches.map(tag => (
+          <Link
+            key={tag}
+            href={`/analyze?q=${encodeURIComponent(tag)}`}
+            className="text-xs px-3 py-1.5 bg-gray-50 border border-gray-200 text-gray-500 rounded-full hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200 transition-colors"
+          >
+            {tag}
+          </Link>
+        ))}
+      </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-16 text-left">
         <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">

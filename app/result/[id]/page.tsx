@@ -70,8 +70,10 @@ export default function ResultPage() {
     );
   }
 
+  const deep = (result as any).deepAnalysis;
   const tabs = [
     { key: "ats", label: "ATS 风险", count: result.atsRisks.length },
+    ...(deep ? [{ key: "deep", label: "深度分析", count: null }] : []),
     { key: "skills", label: "缺失技能", count: result.missingSkills.length },
     { key: "suggestions", label: "优化建议", count: result.resumeSuggestions.length },
     { key: "difficulty", label: "岗位难度", count: null },
@@ -120,6 +122,43 @@ export default function ResultPage() {
 
       {/* Tab Content */}
       <div className="space-y-4">
+        {activeTab === "deep" && deep && (
+          <div className="space-y-4">
+            {deep.atsReport && (
+              <div className="bg-white rounded-xl border border-gray-200 p-5">
+                <h3 className="font-semibold text-gray-900 mb-3">ATS 深度报告 · 匹配率 {deep.atsReport.score}%</h3>
+                <p className="text-xs text-gray-400 mb-1.5">缺失关键词</p>
+                <div className="flex flex-wrap gap-1.5 mb-3">{deep.atsReport.missingKeywords?.map((k: string,i: number) => <span key={i} className="text-xs px-2 py-0.5 bg-amber-50 text-amber-700 rounded border border-amber-200">{k}</span>)}</div>
+                <p className="text-xs text-gray-400 mb-1.5">优化建议</p>
+                {deep.atsReport.tips?.map((t: string,i: number) => <p key={i} className="text-sm text-gray-600 mb-1">· {t}</p>)}
+              </div>
+            )}
+            {deep.hrReview && (
+              <div className="bg-white rounded-xl border border-gray-200 p-5">
+                <h3 className="font-semibold text-gray-900 mb-2">HR 视角分析</h3>
+                <p className="text-sm text-gray-500 mb-3 italic">"{deep.hrReview.impression}"</p>
+                <div className="grid grid-cols-2 gap-3 text-sm">
+                  <div><p className="text-xs text-emerald-500 mb-1">优势</p>{deep.hrReview.strengths?.map((s: string,i: number) => <p key={i} className="text-gray-600">+ {s}</p>)}</div>
+                  <div><p className="text-xs text-red-400 mb-1">风险点</p>{deep.hrReview.risks?.map((r: string,i: number) => <p key={i} className="text-gray-600">- {r}</p>)}</div>
+                </div>
+                <p className="text-xs text-gray-400 mt-3 mb-1">面试可能追问</p>
+                <div className="flex flex-wrap gap-1.5">{deep.hrReview.interviewFocus?.map((f: string,i: number) => <span key={i} className="text-xs px-2 py-0.5 bg-purple-50 text-purple-700 rounded">{f}</span>)}</div>
+              </div>
+            )}
+            {deep.coreAdvantage && (
+              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-5 border border-blue-100">
+                <h3 className="font-semibold text-gray-900 mb-2">核心差异化优势</h3>
+                <p className="text-sm text-gray-700">{deep.coreAdvantage}</p>
+              </div>
+            )}
+            {deep.personalizedAdvice && (
+              <div className="bg-gradient-to-r from-emerald-50 to-teal-50 rounded-xl p-5 border border-emerald-100">
+                <h3 className="font-semibold text-gray-900 mb-2">个性化提升建议</h3>
+                <p className="text-sm text-gray-700">{deep.personalizedAdvice}</p>
+              </div>
+            )}
+          </div>
+        )}
         {activeTab === "ats" && (
           <>
             {result.atsRisks.map((risk, i) => (

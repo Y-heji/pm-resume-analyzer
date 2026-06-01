@@ -21,22 +21,21 @@ export default function RewritePage() {
   const [isPreview, setIsPreview] = useState(false);
   const [phase, setPhase] = useState<"loading" | "result" | "error">("loading");
 
-  // Read ?preview=full from URL OR check unlock code from sessionStorage
+  const id = params.id as string;
+
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      const p = new URLSearchParams(window.location.search);
-      const urlPreview = p.get("preview") === "full";
-      const unlocked = sessionStorage.getItem("unlocked") === "true";
-      setIsPreview(urlPreview || unlocked);
+    if (typeof window === "undefined") return;
+    if (sessionStorage.getItem("unlocked") === "true") { setIsPreview(true); return; }
+    const raw = sessionStorage.getItem(id);
+    if (raw) {
+      try { if (JSON.parse(raw).deepAnalysis) setIsPreview(true); } catch {}
     }
-  }, []);
+  }, [id]);
   const [loadingStep, setLoadingStep] = useState(0);
   const [result, setResult] = useState<RewriteResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const startTimeRef = useRef(Date.now());
-
-  const id = params.id as string;
 
   // Progressive loading animation
   useEffect(() => {
@@ -57,6 +56,10 @@ export default function RewritePage() {
   useEffect(() => {
     const resumeText = sessionStorage.getItem(`${id}_resume`);
     const jdText = sessionStorage.getItem(`${id}_jd`);
+    let deep = sessionStorage.getItem("unlocked") === "true";
+    if (!deep) {
+      try { const raw = sessionStorage.getItem(id); if (raw) deep = !!JSON.parse(raw).deepAnalysis; } catch {}
+    }
 
     if (!resumeText || !jdText) {
       setError("未找到简历或 JD 数据，请返回重新分析");
@@ -64,12 +67,16 @@ export default function RewritePage() {
       return;
     }
 
+    let cancelled = false;
+    const controller = new AbortController();
+
     track("rewrite_start", { analysisId: id });
 
     fetch("/api/rewrite", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ resumeText, jdText }),
+      body: JSON.stringify({ resumeText, jdText, deep }),
+      signal: controller.signal,
     })
       .then(async (res) => {
         if (!res.ok) {
@@ -79,23 +86,24 @@ export default function RewritePage() {
         return res.json();
       })
       .then((data: RewriteResult) => {
+        if (cancelled) return;
         setResult(data);
         setPhase("result");
         sessionStorage.setItem(`${id}_rewrite`, JSON.stringify(data));
         const moduleCount = (data.modules || data.sections || []).length;
-        track("rewrite_complete", {
-          analysisId: id,
-          sectionCount: moduleCount,
-        });
-        track("rewrite_preview_viewed", {
-          analysisId: id,
-          sectionCount: moduleCount,
-        });
+        track("rewrite_complete", { analysisId: id, sectionCount: moduleCount });
+        track("rewrite_preview_viewed", { analysisId: id, sectionCount: moduleCount });
       })
       .catch((err) => {
+        if (cancelled) return;
         setError(err instanceof Error ? err.message : "改写失败");
         setPhase("error");
       });
+
+    return () => {
+      cancelled = true;
+      controller.abort();
+    };
   }, [id]);
 
   // Track time on page when leaving
@@ -123,16 +131,6 @@ export default function RewritePage() {
     const el = document.getElementById("unlock-cta");
     if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
   }, []);
-
-  const handleExportPdf = useCallback(() => {
-    if (!isPreview) {
-      scrollToUnlock();
-      return;
-    }
-    sessionStorage.setItem(`${id}_preview`, isPreview ? "full" : "basic");
-    track("rewrite_pdf_export", { analysisId: id });
-    router.push(`/rewrite/${id}/preview`);
-  }, [id, isPreview, scrollToUnlock, router]);
 
   const handleCopy = useCallback(async () => {
     if (dedupedModules.length === 0) return;
@@ -402,7 +400,14 @@ export default function RewritePage() {
       <div className="mt-10 space-y-3">
         <div className="flex gap-3 justify-center">
           <button
-            onClick={handleExportPdf}
+            onClick={() => {
+              const unlocked = sessionStorage.getItem("unlocked") === "true";
+              const hasDeep = (() => { try { const r = sessionStorage.getItem(id); return r ? !!JSON.parse(r).deepAnalysis : false; } catch { return false; } })();
+              if (!unlocked && !hasDeep) { scrollToUnlock(); return; }
+              sessionStorage.setItem(`${id}_preview`, "full");
+              track("rewrite_pdf_export", { analysisId: id });
+              router.push(`/rewrite/${id}/preview`);
+            }}
             className={`px-5 py-2.5 text-sm font-medium rounded-xl transition-colors inline-flex items-center gap-2 ${
               isPreview
                 ? "bg-gray-900 text-white hover:bg-gray-800"
@@ -446,6 +451,15 @@ export default function RewritePage() {
                 复制优化结果
               </>
             )}
+          </button>
+          <button
+            onClick={() => router.push(`/interview/${id}`)}
+            className="px-5 py-2.5 bg-blue-600 text-white text-sm font-medium rounded-xl hover:bg-blue-700 transition-colors inline-flex items-center gap-2"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+            </svg>
+            模拟面试
           </button>
           <button
             onClick={() => router.push(`/result/${id}`)}

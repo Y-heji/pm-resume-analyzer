@@ -22,11 +22,17 @@ const LEARNING_PATH_GUIDE = `learningPath 中每条 resource 必须包含具体�
 "极客时间 - 邱岳 -《产品经理实战课》 - 从0到1做产品的完整方法论"
 请优先推荐中文资源和B站/慕课网/极客时间/掘金等国内可访问的渠道。`;
 
-const SYSTEM_PROMPT = `你是资深互联网产品经理求职顾问，精通ATS筛选规则、简历优化策略、以及 AI PM 岗位的面试流程。
+const SYSTEM_PROMPT = `你是资深求职顾问+HR，精通ATS筛选规则、简历优化和面试流程。
+
+核心原则：
+- 优先保证分析真实性，不编造经历和数据
+- 根据简历中的工作年限自动调整评价标准（应届生/1-3年/3-5年/5年+）
+- 根据目标岗位类型调整关注点（PM重需求分析，运营重增长转化，开发重技术栈，设计重作品）
+- 重点检测ATS解析风险：日期格式（仅年份如"2022"、中文数字混用如"二〇二二"、缺少月份）、文件格式兼容性、特殊字符/表格/图片导致的关键信息丢失
 ${LEARNING_PATH_GUIDE}
 你必须严格返回 JSON 格式，不要输出任何 JSON 之外的内容，不要用 markdown 代码块包裹。`;
 
-function buildUserPrompt(resumeText: string, jdText: string) {
+function buildUserPrompt(resumeText: string, jdText: string, deep = false) {
   const isShortJD = jdText.length < 60;
 
   if (isShortJD) {
@@ -50,7 +56,13 @@ ${jdText}
   "resumeSuggestions": [{ "section": "简历段落", "issue": "问题", "improvedVersion": "优化后版本" }],
   "difficultyAnalysis": { "overallLevel": "入门/中等/困难/极难", "competitionLevel": "竞争程度", "salaryRange": "薪资范围", "interviewFocus": ["重点"], "keyBarriers": ["障碍"] },
   "learningPath": [{ "order": 数字, "skill": "技能", "resource": "学习资源", "timeEstimate": "时长", "priority": "immediate/short-term/long-term" }],
-  "recommendedJobs": [{ "roleTitle": "推荐岗位名", "matchScore": 数字, "reason": "推荐理由一句话", "typicalSalary": "薪资范围", "difficulty": "入门/中等/困难", "learningPath": [{ "order": 1, "skill": "该岗位需补的核心技能", "resource": "平台 - 创作者 - 课程名 - 说明", "timeEstimate": "预计时间", "priority": "immediate/short-term/long-term" }] }]
+  "recommendedJobs": [{ "roleTitle": "推荐岗位名", "matchScore": 数字, "reason": "推荐理由一句话", "typicalSalary": "薪资范围", "difficulty": "入门/中等/困难", "learningPath": [{ "order": 1, "skill": "该岗位需补的核心技能", "resource": "平台 - 创作者 - 课程名 - 说明", "timeEstimate": "预计时间", "priority": "immediate/short-term/long-term" }] }]${deep ? `,
+  "deepAnalysis": {
+    "atsReport": { "score": 0-100, "missingKeywords": ["JD有但简历缺的关键词"], "tips": ["ATS优化建议"] },
+    "hrReview": { "strengths": ["简历亮点"], "risks": ["面试可能追问的弱点"], "interviewFocus": ["面试官可能深挖的方向"], "impression": "HR看完简历的第一印象" },
+    "coreAdvantage": "结合经历提炼的核心差异化优势",
+    "personalizedAdvice": "针对这个岗位的个性化提升建议"
+  }` : ""}
 }`;
   }
 
@@ -73,7 +85,13 @@ ${jdText}
   "resumeSuggestions": [{ "section": "简历段落", "issue": "问题", "improvedVersion": "优化后版本" }],
   "difficultyAnalysis": { "overallLevel": "入门/中等/困难/极难", "competitionLevel": "竞争程度", "salaryRange": "薪资范围", "interviewFocus": ["重点"], "keyBarriers": ["障碍"] },
   "learningPath": [{ "order": 数字, "skill": "技能", "resource": "学习资源", "timeEstimate": "时长", "priority": "immediate/short-term/long-term" }],
-  "recommendedJobs": [{ "roleTitle": "推荐岗位名", "matchScore": 数字, "reason": "推荐理由一句话", "typicalSalary": "薪资范围", "difficulty": "入门/中等/困难", "learningPath": [{ "order": 1, "skill": "该岗位需补的核心技能", "resource": "平台 - 创作者 - 课程名 - 说明", "timeEstimate": "预计时间", "priority": "immediate/short-term/long-term" }] }]
+  "recommendedJobs": [{ "roleTitle": "推荐岗位名", "matchScore": 数字, "reason": "推荐理由一句话", "typicalSalary": "薪资范围", "difficulty": "入门/中等/困难", "learningPath": [{ "order": 1, "skill": "该岗位需补的核心技能", "resource": "平台 - 创作者 - 课程名 - 说明", "timeEstimate": "预计时间", "priority": "immediate/short-term/long-term" }] }]${deep ? `,
+  "deepAnalysis": {
+    "atsReport": { "score": 0-100, "missingKeywords": ["JD有但简历缺的关键词"], "tips": ["ATS优化建议"] },
+    "hrReview": { "strengths": ["简历亮点"], "risks": ["面试可能追问的弱点"], "interviewFocus": ["面试官可能深挖的方向"], "impression": "HR看完简历的第一印象" },
+    "coreAdvantage": "结合经历提炼的核心差异化优势",
+    "personalizedAdvice": "针对这个岗位的个性化提升建议"
+  }` : ""}
 }`;
 }
 
@@ -89,7 +107,8 @@ function extractJson(text: string): string {
 
 export async function analyzeResume(
   resumeText: string,
-  jdText: string
+  jdText: string,
+  deep = false
 ): Promise<AnalysisResult> {
   let lastError: Error | null = null;
 
@@ -99,7 +118,7 @@ export async function analyzeResume(
         model: "deepseek-chat",
         messages: [
           { role: "system", content: SYSTEM_PROMPT },
-          { role: "user", content: buildUserPrompt(resumeText, jdText) },
+          { role: "user", content: buildUserPrompt(resumeText, jdText, deep) },
         ],
         temperature: 0.3,
         max_tokens: 8000,
@@ -135,6 +154,7 @@ export async function analyzeResume(
         recommendedJobs: Array.isArray(parsed.recommendedJobs)
           ? parsed.recommendedJobs
           : [],
+        ...(deep && parsed.deepAnalysis ? { deepAnalysis: parsed.deepAnalysis } as any : {}),
       };
     } catch (err) {
       lastError = err as Error;

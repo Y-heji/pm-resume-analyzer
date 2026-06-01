@@ -1,11 +1,9 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import type { FinalResume } from "@/lib/types";
-import type { ResumeTemplate } from "@/lib/resume-templates";
-import { TEMPLATES, getTemplate } from "@/lib/resume-templates";
 import { Font } from "@react-pdf/renderer";
 import ResumePdfDocument from "@/components/resume-pdf-document";
 
@@ -20,10 +18,12 @@ export default function ResumePreviewPage() {
   const id = params.id as string;
 
   const [finalResume, setFinalResume] = useState<FinalResume | null>(null);
-  const [selectedId, setSelectedId] = useState("ai-pm");
+  const [deepAnalysis, setDeepAnalysis] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [downloading, setDownloading] = useState(false);
   const [showExportMenu, setShowExportMenu] = useState(false);
+  const [exportError, setExportError] = useState<string | null>(null);
+  const pdfBlobRef = useRef<Blob | null>(null);
 
   useEffect(() => {
     const stored = sessionStorage.getItem(`${id}_rewrite`);
@@ -33,6 +33,14 @@ export default function ResumePreviewPage() {
         if (result.finalResume) setFinalResume(result.finalResume);
       } catch {}
     }
+    // Also try to read deep analysis from original analysis result
+    const analysisStored = sessionStorage.getItem(id);
+    if (analysisStored) {
+      try {
+        const analysis = JSON.parse(analysisStored);
+        if (analysis.deepAnalysis) setDeepAnalysis(analysis.deepAnalysis);
+      } catch {}
+    }
     setLoading(false);
   }, [id]);
 
@@ -40,7 +48,14 @@ export default function ResumePreviewPage() {
     try {
       Font.register({
         family: "Noto Sans SC",
-        fonts: [{ src: "/fonts/NotoSansSC.otf" }],
+        fonts: [
+          { src: "/fonts/NotoSansSC.otf" },
+          { src: "/fonts/NotoSansSC-Bold.otf", fontWeight: 700 },
+        ],
+      });
+      Font.register({
+        family: "Noto Sans SC-Bold",
+        fonts: [{ src: "/fonts/NotoSansSC-Bold.otf" }],
       });
     } catch {}
   }, []);
@@ -56,40 +71,47 @@ export default function ResumePreviewPage() {
     return () => document.removeEventListener("click", handler);
   }, [showExportMenu]);
 
-  const selectedTemplate = getTemplate(selectedId);
-
   const exportFile = useCallback(async (format: "pdf" | "word") => {
-    if (!finalResume) return;
     setDownloading(true);
+    setExportError(null);
     try {
-      const endpoint = format === "pdf" ? "/api/export-pdf" : "/api/export-word";
-      const body =
-        format === "pdf"
-          ? { finalResume, template: selectedId }
-          : { finalResume };
-      const res = await fetch(endpoint, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
-      if (!res.ok) {
-        const errData = await res.json().catch(() => null);
-        throw new Error(errData?.error || "Export failed");
+      if (format === "pdf" && pdfBlobRef.current) {
+        // Use pre-rendered PDF blob from BlobProvider — instant, no API call
+        const url = URL.createObjectURL(pdfBlobRef.current);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `resume-${Date.now()}.pdf`;
+        a.click();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+      } else {
+        // Word export uses API
+        if (!finalResume) return;
+        const body = deepAnalysis ? { finalResume, deepAnalysis } : { finalResume };
+        const res = await fetch("/api/export-word", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        });
+        if (!res.ok) {
+          const errData = await res.json().catch(() => null);
+          throw new Error(errData?.error || "导出失败");
+        }
+        const buf = await res.arrayBuffer();
+        const blob = new Blob([buf], { type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `resume-${Date.now()}.docx`;
+        a.click();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
       }
-      const buf = await res.arrayBuffer();
-      const mime =
-        format === "pdf"
-          ? "application/pdf"
-          : "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
-      const blob = new Blob([buf], { type: mime });
-      const url = URL.createObjectURL(blob);
-      window.open(url, "_blank");
     } catch (err) {
-      console.error(`${format} export failed:`, err);
+      const msg = err instanceof Error ? err.message : "导出失败";
+      setExportError(msg);
     } finally {
       setDownloading(false);
     }
-  }, [finalResume, selectedId]);
+  }, [finalResume, deepAnalysis]);
 
   if (loading) {
     return (
@@ -134,28 +156,6 @@ export default function ResumePreviewPage() {
         </div>
 
         <div className="flex items-center gap-4">
-          {/* Template switcher */}
-          <div className="flex items-center gap-3">
-            {TEMPLATES.map((t: ResumeTemplate) => (
-              <label
-                key={t.id}
-                className={`text-xs cursor-pointer transition-colors ${
-                  selectedId === t.id ? "text-gray-900 font-medium" : "text-gray-400 hover:text-gray-600"
-                }`}
-              >
-                <input
-                  type="radio"
-                  name="template"
-                  value={t.id}
-                  checked={selectedId === t.id}
-                  onChange={() => setSelectedId(t.id)}
-                  className="sr-only"
-                />
-                {t.name}
-              </label>
-            ))}
-          </div>
-
           <div className="relative export-menu">
             <button
               onClick={(e) => { e.stopPropagation(); setShowExportMenu(!showExportMenu); }}
@@ -193,6 +193,9 @@ export default function ResumePreviewPage() {
                 </button>
               </div>
             )}
+            {exportError && (
+              <p className="text-xs text-red-500 mt-1.5">{exportError}</p>
+            )}
           </div>
         </div>
       </div>
@@ -200,10 +203,11 @@ export default function ResumePreviewPage() {
       {/* Document canvas */}
       <div className="py-10 flex justify-center">
         <BlobProvider
-          document={<ResumePdfDocument finalResume={finalResume} template={selectedTemplate} />}
+          document={<ResumePdfDocument finalResume={finalResume} deepAnalysis={deepAnalysis} />}
         >
-          {({ url, loading: pdfLoading, error: pdfError }) =>
-            pdfLoading ? (
+          {({ url, blob, loading: pdfLoading, error: pdfError }) => {
+            if (blob) pdfBlobRef.current = blob;
+            return pdfLoading ? (
               <div className="flex items-center justify-center py-32">
                 <div className="animate-spin w-6 h-6 border-2 border-gray-400 border-t-gray-700 rounded-full" />
               </div>

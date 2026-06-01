@@ -1,342 +1,205 @@
-import {
-  Document,
-  Page,
-  Text,
-  View,
-} from "@react-pdf/renderer";
+import { Document, Page, Text, View } from "@react-pdf/renderer";
 import type { FinalResume } from "@/lib/types";
-import type { ResumeTemplate } from "@/lib/resume-templates";
 
-// ─── Single-column styles ─────────────────────────────────────
+const FONT_FAMILY = "Noto Sans SC";
 
-function singleStyles(t: ResumeTemplate) {
-  const pad = t.spacing.pagePadding;
-  return {
-    page: {
-      padding: `${pad}pt`,
-      fontFamily: t.font.family,
-      fontSize: t.font.sizes.body,
-      fontWeight: t.font.weights.body,
-      lineHeight: t.layout.lineHeight,
-      color: t.colors.text,
-    },
-    header: { marginBottom: t.spacing.headerGap },
-    name: {
-      fontSize: t.font.sizes.name,
-      fontWeight: t.font.weights.name,
-      letterSpacing: -0.3,
-      marginBottom: 3,
-    },
-    roleTitle: {
-      fontSize: t.font.sizes.role,
-      color: t.colors.text,
-      fontWeight: 500,
-      marginBottom: 5,
-    },
-    contactRow: {
-      fontSize: t.font.sizes.small,
-      color: t.colors.muted,
-      lineHeight: 1.4,
-    },
-    sectionTitle: {
-      fontSize: t.font.sizes.section,
-      fontWeight: t.font.weights.section,
-      letterSpacing: t.layout.sectionSpacing,
-      borderBottom: `${t.layout.borderWidth}pt solid ${t.colors.border}`,
-      paddingBottom: 2,
-      marginBottom: 7,
-      marginTop: t.spacing.sectionGap,
-    },
-    summaryText: {
-      fontSize: t.font.sizes.body,
-      lineHeight: t.layout.lineHeight,
-      color: t.colors.text,
-      marginBottom: 2,
-    },
-    entry: { marginBottom: t.spacing.entryGap },
-    entryTitle: { fontSize: t.font.sizes.body, fontWeight: 600 },
-    entrySub: { fontSize: t.font.sizes.small, color: t.colors.muted, marginBottom: 2 },
-    bullet: {
-      fontSize: t.font.sizes.body,
-      lineHeight: t.layout.lineHeight,
-      color: t.colors.text,
-      marginBottom: t.spacing.bulletGap,
-      paddingLeft: 12,
-    },
-    skillText: { fontSize: t.font.sizes.body, color: t.colors.muted, lineHeight: 1.5 },
-  };
+// ═══ Styles ════════════════════════════════════════════════════
+
+const S = {
+  page: {
+    padding: "48pt 48pt 42pt 48pt",
+    fontFamily: FONT_FAMILY,
+    fontSize: 9.5,
+    lineHeight: 1.6,
+    color: "#333",
+  },
+  // Header
+  header: { textAlign: "center" as const, marginBottom: 18 },
+  name: { fontSize: 20, fontFamily: `${FONT_FAMILY}-Bold`, color: "#111", marginBottom: 4 },
+  role: { fontSize: 10.5, color: "#555", marginBottom: 4 },
+  contact: { fontSize: 9, color: "#888" },
+  divider: { borderBottom: "1pt solid #e0e0e0", marginBottom: 16 },
+
+  // Summary
+  summaryLabel: { fontSize: 11, fontFamily: `${FONT_FAMILY}-Bold`, color: "#111", marginBottom: 5, borderBottom: "1pt solid #e8e8e8", paddingBottom: 2 },
+  summaryText: { fontSize: 9.5, color: "#333", lineHeight: 1.6, marginBottom: 2 },
+
+  // Section
+  section: { marginTop: 16 },
+  sectionTitle: { fontSize: 11, fontFamily: `${FONT_FAMILY}-Bold`, color: "#111", borderBottom: "1pt solid #e8e8e8", paddingBottom: 2, marginBottom: 8 },
+
+  // Entry
+  entry: { marginBottom: 8 },
+  entryTitle: {
+    fontSize: 10,
+    fontFamily: `${FONT_FAMILY}-Bold`,
+    color: "#222",
+    marginBottom: 1,
+  },
+  entrySub: { fontSize: 8.5, color: "#888", marginBottom: 3 },
+  bullet: { fontSize: 9.5, color: "#333", lineHeight: 1.6, marginBottom: 1.5, paddingLeft: 12 },
+
+  // Skills
+  skillsText: { fontSize: 9.5, color: "#555", lineHeight: 1.5 },
+
+  // Education
+  eduTitle: { fontSize: 10, fontFamily: `${FONT_FAMILY}-Bold`, color: "#222" },
+  eduSub: { fontSize: 9, color: "#888" },
+};
+
+// ═══ Component ══════════════════════════════════════════════════
+
+interface DeepData {
+  atsReport?: { score: number; missingKeywords?: string[]; tips?: string[] };
+  hrReview?: { strengths?: string[]; risks?: string[]; interviewFocus?: string[]; impression?: string };
+  coreAdvantage?: string;
+  personalizedAdvice?: string;
 }
 
-// ─── Split (premium) styles ───────────────────────────────────
-
-function splitStyles(t: ResumeTemplate) {
-  const sw = t.layout.sidebarWidth || 32;
-  const cw = 100 - sw;
-  return {
-    page: {
-      flexDirection: "row",
-      fontFamily: t.font.family,
-      fontSize: t.font.sizes.body,
-      fontWeight: t.font.weights.body,
-      lineHeight: t.layout.lineHeight,
-      color: t.colors.text,
-    },
-    // ── Sidebar ──
-    sidebar: {
-      width: `${sw}%`,
-      backgroundColor: t.colors.sidebarBg || "#1e1e1e",
-      padding: "36pt 22pt 30pt 26pt",
-    },
-    sbName: {
-      fontSize: t.font.sizes.name,
-      fontWeight: t.font.weights.name,
-      color: "#fff",
-      marginBottom: 4,
-    },
-    sbRole: {
-      fontSize: t.font.sizes.role,
-      color: t.colors.accent || "#60a5fa",
-      fontWeight: 500,
-      marginBottom: 20,
-    },
-    sbSectionLabel: {
-      fontSize: 8.5,
-      fontWeight: 600,
-      color: t.colors.accent || "#60a5fa",
-      textTransform: "uppercase" as const,
-      letterSpacing: 1.4,
-      marginBottom: 7,
-      marginTop: 16,
-    },
-    sbContactItem: {
-      fontSize: 8,
-      color: t.colors.sidebarText || "#d4d4d4",
-      marginBottom: 4,
-      lineHeight: 1.5,
-    },
-    sbSkillItem: {
-      fontSize: 8.5,
-      color: t.colors.sidebarText || "#d4d4d4",
-      marginBottom: 5,
-      lineHeight: 1.4,
-    },
-    // ── Content ──
-    content: {
-      width: `${cw}%`,
-      padding: "36pt 30pt 30pt 26pt",
-    },
-    cSectionTitle: {
-      fontSize: t.font.sizes.section,
-      fontWeight: t.font.weights.section,
-      letterSpacing: t.layout.sectionSpacing,
-      borderBottom: `${t.layout.borderWidth}pt solid ${t.colors.border}`,
-      paddingBottom: 2,
-      marginBottom: 8,
-      marginTop: t.spacing.sectionGap,
-    },
-    cSummary: {
-      fontSize: t.font.sizes.body,
-      lineHeight: t.layout.lineHeight + 0.05,
-      color: t.colors.text,
-      marginBottom: 4,
-    },
-    cEntry: { marginBottom: t.spacing.entryGap + 2 },
-    cEntryTitle: { fontSize: t.font.sizes.body, fontWeight: 600 },
-    cEntrySub: {
-      fontSize: t.font.sizes.small,
-      color: t.colors.muted,
-      marginBottom: 4,
-    },
-    cBullet: {
-      fontSize: t.font.sizes.body,
-      lineHeight: t.layout.lineHeight,
-      color: t.colors.text,
-      marginBottom: t.spacing.bulletGap,
-      paddingLeft: 12,
-    },
-    cEduTitle: { fontSize: t.font.sizes.body, fontWeight: 600 },
-    cEduSub: { fontSize: t.font.sizes.small, color: t.colors.muted },
-  };
+interface Props {
+  finalResume: FinalResume;
+  deepAnalysis?: DeepData;
 }
 
-// ─── Single Column Document ───────────────────────────────────
+// Appendix page styles (conservative — avoids flexWrap/gap for compat)
+const A = {
+  page: { padding: "48pt 48pt 42pt 48pt", fontFamily: FONT_FAMILY, fontSize: 9.5, color: "#333" },
+  title: { fontSize: 18, fontFamily: `${FONT_FAMILY}-Bold`, color: "#111", textAlign: "center" as const, marginBottom: 8 },
+  subtitle: { fontSize: 9, color: "#888", textAlign: "center" as const, marginBottom: 18 },
+  divider: { borderBottom: "1pt solid #e0e0e0", marginBottom: 16 },
+  section: { marginBottom: 14 },
+  sectionTitle: { fontSize: 11, fontFamily: `${FONT_FAMILY}-Bold`, color: "#111", marginBottom: 6 },
+  label: { fontSize: 8, color: "#888", marginBottom: 3 },
+  text: { fontSize: 9.5, color: "#333", lineHeight: 1.6, marginBottom: 3 },
+  tag: { fontSize: 8.5, color: "#333", marginBottom: 2 },
+};
 
-function SingleColumnResume({ data, t }: { data: FinalResume; t: ResumeTemplate }) {
-  const s = singleStyles(t);
+export default function ResumePdfDocument({ finalResume: data, deepAnalysis: d }: Props) {
   const h = data.header || { name: "", role: "", contact: "" };
 
   return (
-    <Page size="A4" style={s.page} wrap>
-      {/* HEADER */}
-      <View style={s.header}>
-        <Text style={s.name}>{h.name}</Text>
-        {h.role ? <Text style={s.roleTitle}>{h.role}</Text> : null}
-        {h.contact ? <Text style={s.contactRow}>{h.contact}</Text> : null}
-      </View>
-
-      {/* SUMMARY */}
-      {data.summary ? (
-        <View>
-          <Text style={s.sectionTitle}>个人总结</Text>
-          <Text style={s.summaryText}>{data.summary}</Text>
+    <Document title={h.name || "Resume"}>
+      <Page size="A4" style={S.page} wrap>
+        {/* ═══ HEADER ═══ */}
+        <View style={S.header}>
+          <Text style={S.name}>{h.name || "姓名"}</Text>
+          {h.role ? <Text style={S.role}>{h.role}</Text> : null}
+          {h.contact ? <Text style={S.contact}>{h.contact}</Text> : null}
         </View>
-      ) : null}
+        <View style={S.divider} />
 
-      {/* SECTIONS */}
-      {(data.sections || []).map((sec, si) => (
-        <View key={si}>
-          <Text style={s.sectionTitle}>{sec.label}</Text>
-          {sec.entries.map((e, ei) => (
-            <View key={ei} style={s.entry}>
-              <Text style={s.entryTitle}>{e.title}</Text>
-              {e.subtitle ? <Text style={s.entrySub}>{e.subtitle}</Text> : null}
-              {e.bullets.map((b, bi) => (
-                <Text key={bi} style={s.bullet}>{"•"} {b}</Text>
-              ))}
-            </View>
-          ))}
-        </View>
-      ))}
-
-      {/* SKILLS */}
-      {data.skills?.length > 0 ? (
-        <View>
-          <Text style={s.sectionTitle}>技能</Text>
-          <Text style={s.skillText}>{data.skills.join("  ·  ")}</Text>
-        </View>
-      ) : null}
-
-      {/* EDUCATION */}
-      {data.education?.school ? (
-        <View>
-          <Text style={s.sectionTitle}>教育背景</Text>
-          <View style={s.entry}>
-            <Text style={s.entryTitle}>{data.education.school}</Text>
-            <Text style={s.entrySub}>
-              {data.education.degree}
-              {data.education.year ? `  |  ${data.education.year}` : ""}
-            </Text>
-          </View>
-        </View>
-      ) : null}
-    </Page>
-  );
-}
-
-// ─── Split (Premium) Document ─────────────────────────────────
-
-function SplitResume({ data, t }: { data: FinalResume; t: ResumeTemplate }) {
-  const s = splitStyles(t);
-  const h = data.header || { name: "", role: "", contact: "" };
-
-  // Parse contact into items
-  const contactItems = h.contact
-    ? h.contact.split(/[·,，、]/).filter(Boolean).map((c) => c.trim())
-    : [];
-
-  return (
-    <Page size="A4" style={s.page} wrap>
-      {/* ═══ SIDEBAR ═══ */}
-      <View style={s.sidebar}>
-        <Text style={s.sbName}>{h.name}</Text>
-        <Text style={s.sbRole}>{h.role}</Text>
-
-        {/* Contact */}
-        {contactItems.length > 0 ? (
-          <>
-            <Text style={s.sbSectionLabel}>Contact</Text>
-            {contactItems.map((item, i) => (
-              <Text key={i} style={s.sbContactItem}>{item}</Text>
-            ))}
-          </>
-        ) : null}
-
-        {/* Skills in sidebar */}
-        {data.skills?.length > 0 ? (
-          <>
-            <Text style={s.sbSectionLabel}>Skills</Text>
-            {data.skills.map((sk, i) => (
-              <Text key={i} style={s.sbSkillItem}>{sk}</Text>
-            ))}
-          </>
-        ) : null}
-
-        {/* Education in sidebar */}
-        {data.education?.school ? (
-          <>
-            <Text style={s.sbSectionLabel}>Education</Text>
-            <Text style={{ fontSize: 8.5, color: t.colors.sidebarText || "#d4d4d4", marginBottom: 2 }}>
-              {data.education.school}
-            </Text>
-            <Text style={{ fontSize: 7.5, color: t.colors.sidebarText || "#d4d4d4", opacity: 0.7 }}>
-              {data.education.degree}
-              {data.education.year ? `, ${data.education.year}` : ""}
-            </Text>
-          </>
-        ) : null}
-      </View>
-
-      {/* ═══ MAIN CONTENT ═══ */}
-      <View style={s.content}>
-        {/* Summary */}
+        {/* ═══ SUMMARY ═══ */}
         {data.summary ? (
           <View>
-            <Text style={s.cSectionTitle}>个人总结</Text>
-            <Text style={s.cSummary}>{data.summary}</Text>
+            <Text style={S.summaryLabel}>个人总结</Text>
+            <Text style={S.summaryText}>{data.summary}</Text>
           </View>
         ) : null}
 
-        {/* Sections (Experience, Projects) */}
+        {/* ═══ SECTIONS ═══ */}
         {(data.sections || []).map((sec, si) => (
-          <View key={si}>
-            <Text style={s.cSectionTitle}>{sec.label}</Text>
+          <View key={si} style={S.section}>
+            <Text style={S.sectionTitle}>{sec.label}</Text>
             {sec.entries.map((e, ei) => (
-              <View key={ei} style={s.cEntry}>
-                {/* Timeline dot + title */}
-                <View style={{ flexDirection: "row", alignItems: "flex-start", marginBottom: 2 }}>
-                  <View
-                    style={{
-                      width: 6,
-                      height: 6,
-                      borderRadius: 3,
-                      backgroundColor: t.colors.accent || "#3b82f6",
-                      marginTop: 4,
-                      marginRight: 8,
-                    }}
-                  />
-                  <View style={{ flex: 1 }}>
-                    <Text style={s.cEntryTitle}>{e.title}</Text>
-                    {e.subtitle ? <Text style={s.cEntrySub}>{e.subtitle}</Text> : null}
-                  </View>
-                </View>
-                {/* Bullets after timeline dot */}
+              <View key={ei} style={S.entry}>
+                <Text style={S.entryTitle}>{e.title}</Text>
+                {e.subtitle ? <Text style={S.entrySub}>{e.subtitle}</Text> : null}
                 {e.bullets.map((b, bi) => (
-                  <Text key={bi} style={s.cBullet}>{"•"} {b}</Text>
+                  <Text key={bi} style={S.bullet}>{"•"} {b}</Text>
                 ))}
               </View>
             ))}
           </View>
         ))}
-      </View>
-    </Page>
-  );
-}
 
-// ─── Router ────────────────────────────────────────────────────
+        {/* ═══ SKILLS ═══ */}
+        {data.skills?.length > 0 ? (
+          <View style={S.section}>
+            <Text style={S.sectionTitle}>技能</Text>
+            <Text style={S.skillsText}>{data.skills.join("  ·  ")}</Text>
+          </View>
+        ) : null}
 
-interface Props {
-  finalResume: FinalResume;
-  template: ResumeTemplate;
-}
+        {/* ═══ EDUCATION ═══ */}
+        {data.education?.school ? (
+          <View style={S.section}>
+            <Text style={S.sectionTitle}>教育背景</Text>
+            <View style={S.entry}>
+              <Text style={S.eduTitle}>{data.education.school}</Text>
+              <Text style={S.eduSub}>
+                {data.education.degree}
+                {data.education.year ? `  |  ${data.education.year}` : ""}
+              </Text>
+            </View>
+          </View>
+        ) : null}
+      </Page>
 
-export default function ResumePdfDocument({ finalResume, template }: Props) {
-  return (
-    <Document title={finalResume.header?.name || "Resume"}>
-      {template.mode === "split" ? (
-        <SplitResume data={finalResume} t={template} />
-      ) : (
-        <SingleColumnResume data={finalResume} t={template} />
-      )}
+      {/* ═══ Deep Analysis Appendix (only when deep) ═══ */}
+      {d ? (
+        <Page size="A4" style={A.page} wrap>
+          <Text style={A.title}>深度分析报告</Text>
+          <Text style={A.subtitle}>AI 职业经理师 · 付费版专属</Text>
+          <View style={A.divider} />
+
+          {d.atsReport ? (
+            <View style={A.section}>
+              <Text style={A.sectionTitle}>ATS 匹配率：{d.atsReport.score}%</Text>
+              {d.atsReport.missingKeywords?.length ? (
+                <View>
+                  <Text style={A.label}>缺失关键词</Text>
+                  <Text style={A.text}>{d.atsReport.missingKeywords.join("  ·  ")}</Text>
+                </View>
+              ) : null}
+              {d.atsReport.tips?.length ? (
+                <View>
+                  <Text style={A.label}>优化建议</Text>
+                  {d.atsReport.tips.map((t: string, i: number) => <Text key={i} style={A.text}>· {t}</Text>)}
+                </View>
+              ) : null}
+            </View>
+          ) : null}
+
+          {d.hrReview ? (
+            <View style={A.section}>
+              <Text style={A.sectionTitle}>HR 视角分析</Text>
+              <Text style={{ ...A.text, color: "#666" }}>"{d.hrReview.impression}"</Text>
+              {d.hrReview.strengths?.length ? (
+                <View>
+                  <Text style={{ ...A.label, color: "#16a34a", marginTop: 6 }}>优势</Text>
+                  {d.hrReview.strengths.map((s: string, i: number) => <Text key={i} style={A.text}>+ {s}</Text>)}
+                </View>
+              ) : null}
+              {d.hrReview.risks?.length ? (
+                <View>
+                  <Text style={{ ...A.label, color: "#dc2626", marginTop: 6 }}>风险点</Text>
+                  {d.hrReview.risks.map((r: string, i: number) => <Text key={i} style={A.text}>- {r}</Text>)}
+                </View>
+              ) : null}
+              {d.hrReview.interviewFocus?.length ? (
+                <View>
+                  <Text style={{ ...A.label, marginTop: 6 }}>面试可能追问</Text>
+                  <Text style={A.tag}>{d.hrReview.interviewFocus.join("  ·  ")}</Text>
+                </View>
+              ) : null}
+            </View>
+          ) : null}
+
+          {d.coreAdvantage ? (
+            <View style={A.section}>
+              <Text style={A.sectionTitle}>核心差异化优势</Text>
+              <Text style={A.text}>{d.coreAdvantage}</Text>
+            </View>
+          ) : null}
+
+          {d.personalizedAdvice ? (
+            <View style={A.section}>
+              <Text style={A.sectionTitle}>个性化提升建议</Text>
+              <Text style={A.text}>{d.personalizedAdvice}</Text>
+            </View>
+          ) : null}
+        </Page>
+      ) : null}
     </Document>
   );
 }

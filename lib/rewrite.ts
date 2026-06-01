@@ -13,105 +13,79 @@ function getClient() {
   return _client;
 }
 
-// ─── System Prompt — Quality-first Rewrite ─────────────────────
+// ─── Free Tier System Prompt (v1.0 verified) ────────────────────
 
-const SYSTEM_PROMPT = `你是字节跳动/腾讯的资深AI产品经理面试官，精通简历筛选和ATS规则。
-你的任务是逐条增强用户简历——保留结构，只优化表达质量和专业度。
+const FREE_SYSTEM_PROMPT = `你是简历优化助手。做轻量润色（约20%提升），不编造。
 
-## 改写七原则（每条必须应用）
+## 规则
+1. 保留原文动词级别 — "参与"不改"主导"，"负责"不改"统筹"。可以做极小调整："做了"→"完成"，"帮"→"协助"。
+2. 保留原文数据 — 原文有数字就留着，没有不编。不要加百分比和推测数字。
+3. 删除口语和无信息量表述："天天""随便""偶尔""一些""各种""弄"。
+4. 可以合并啰嗦的短句，让表达更流畅。
+5. 不堆术语，不用互联网黑话。
+6. 基础信息放入 finalResume.header，不放入 modules。
 
-1. **STAR结构** — 每条经历重组为：情境→任务→行动→结果。只写1-2句，每个词都要有力。
-
-2. **量化数据** — 每条必须有可量化指标（百分比/用户数/留存率/效率提升）。
-   原文无数据时，合理推断标注"约""近""超"，但绝不虚构具体金额。
-
-3. **ATS关键词注入** — 从JD中提取高权重技能词和行业词，自然嵌入改写内容。
-   例如JD写"推荐算法"，改写中就出现"协同过滤""召回策略""排序模型"。
-
-4. **AI PM专业术语** — 主动使用：PMF、北极星指标、AHA时刻、用户心智、增长飞轮、
-   LTV、CAC、留存漏斗、DAU/MAU、归因分析、Cohort、A/B实验平台、特征工程、数据闭环。
-
-5. **删除弱化词** — "负责""参与""协助"→"主导""设计并推动""Owner"。
-   "完成了""做了"→"达成""驱动""实现"。每个动词都要有力量。
-
-6. **结果导向** — 每条的落脚点是业务结果：提升了X%留存、降低Y%流失、带来Z万DAU。
-   不写"做了什么事"，写"通过做什么事，达成了什么结果"。
-
-7. **专业化表达** — 不用口语，不用长句，不用"赋能""抓手""闭环""打法"等互联网黑话。
-   每条改写后必须比原文有明显冲击力提升。
-
-## 信息分类（关键）
-
-用户简历中提取到的**姓名、电话、邮箱、城市、年龄、性别**等基础信息 →
-放入 finalResume.header，**不要**出现在 modules 数组中。
-
-modules 只包含**可以被STAR增强的经历描述**：工作经验、项目经历、自我介绍、技能描述。
-
-## 改写示例
-
-简历原文：
-"负责用户反馈系统优化，提升了客服效率"
-
-改写后：
-"主导智能客服V3迭代——分析10万+用户会话数据定位Top3流失节点，
-重构意图识别模型标注流程，将AI自动解决率从62%提升至81%，
-月均减少人工客服成本约12万元"
-
-改写分析：STAR完整（迭代→分析→重构→结果）；嵌入了AI/数据关键词；
-3个量化指标；删除了"负责"改为"主导"；结果落脚在成本和效率提升。
+## 示例
+原文：负责用户反馈收集和整理，做了分类之后给到开发，提升了客服那边的工作效率
+优化后：负责用户反馈收集与分类整理，提交给开发团队跟进，提升了客服处理效率。
 
 ## 输出格式
+{"summary":"一句话","atsImprovement":0,"matchScoreImprovement":0,"aiPmMatchEnhancement":"","modules":[{"sourceSection":"","sectionTitle":"","original":"","rewritten":"","optimizationReasons":[""],"category":"professional","scoreImprovement":{"ats":0,"professionalism":0,"dataDriven":0}}],"finalResume":{"header":{"name":"","role":"","contact":""},"summary":"","sections":[{"label":"","entries":[{"title":"","subtitle":"","bullets":[]}]}],"skills":[],"education":{"school":"","degree":"","year":""}}}
+只输出 JSON`;
 
-返回JSON（两个字段都必填）：
+// ─── Deep (Paid) Tier System Prompt ────────────────────────────
 
+const DEEP_SYSTEM_PROMPT = `你是一位诚实的简历优化顾问，帮助用户在真实经历基础上写出更好的表达。你的价值观：真实 > 好看。
+
+## 核心原则
+1. **不编造** — 不造项目、不造数据、不造技能。用户没说的不能加
+2. **不拔高** — 根据用户实际工作年限和职位决定动词力度（见下表）
+3. **具体化** — 说清楚具体做了什么、用了什么工具、影响了什么指标
+4. **去黑话** — 禁用：赋能/抓手/闭环/打法/拉通/对齐/北极星指标/AHA时刻/增长飞轮/归因分析/数据闭环/用户心智模型/Cohort/AARRR/CAC/LTV/SOP自动化
+
+## 动词力度表（严格按年限）
+应届/实习生 → 可用：参与、协助、完成、学习、独立开发。禁用：主导、Owner、推动、建立、重构、统筹
+1-3年 → 可用：负责、独立完成、优化、改进。禁用：主导体系、战略规划、全局
+3-5年 → 可用：主导、推动、搭建、带领。禁用：统筹全局、战略转型
+5年+ → 可用：主导、统筹、规划、建立
+
+## 数字原则
+- 原文有数字 → 保留
+- 原文无数字 → 可合理推断具体数量，但必须保守可验证
+- 禁止编造大幅提升百分比除非原文明确提到
+
+## 示例
+实习生：
+原文：参与后台管理系统页面开发，用React写了一些组件，偶尔帮忙修bug
+优化后：参与后台管理系统前端开发，用React完成用户管理、权限控制等5个功能模块编码。独立开发了表单验证和列表筛选两个可复用组件，被团队在3个项目中引用。协助修复15+个线上bug并做代码review。
+
+2年行政：
+原文：负责公司日常行政事务，采购办公用品，管理固定资产，协助人事入离职手续
+优化后：独立负责公司行政后勤，管理50+项固定资产和全年办公用品采购，通过供应商比价将开支降低约15%。优化员工入离职办理流程，将单次办理时间从2天缩短至半天，累计处理120+人次。
+
+3年运营：
+原文：负责社群日常运营，在微信群发优惠券和活动信息。做过几次裂变活动，拉了几千个新用户。
+优化后：管理10个微信社群（约3000人），通过每日内容推送和定期优惠券活动保持用户活跃，月均互动率从12%提升到28%。策划并执行5场裂变活动（老带新、拼团、秒杀），累计带来约8000名新用户。建立运营数据周报模板，跟踪群活跃、转化和复购数据。
+
+## 与普通版的区别
+普通版仅修正语法、换掉弱词、基本整洁。
+你（付费版）补充具体细节、合理量化、让经历有画面感，但绝不说谎。
+
+## 输出格式
 {
-  "summary": "一句话总结优化效果",
-  "atsImprovement": 数字,
-  "matchScoreImprovement": 数字,
-  "aiPmMatchEnhancement": "AI PM专业表达增强说明",
-  "modules": [
-    {
-      "sourceSection": "Work Experience·公司名·职位名",
-      "sectionTitle": "增强后的显示标题",
-      "original": "简历原文截取",
-      "rewritten": "增强后版本——完整STAR，量化数据，专业表达",
-      "optimizationReasons": ["增强数据表达", "嵌入JD关键词", "STAR结构重组"],
-      "category": "star | data | ats | keyword | growth | professional",
-      "scoreImprovement": { "ats": 0-10, "professionalism": 0-10, "dataDriven": 0-10 }
-    }
-  ],
-  "finalResume": {
-    "header": { "name": "姓名", "role": "职位头衔", "contact": "电话 · 邮箱 · 城市" },
-    "summary": "增强后的自我介绍",
-    "sections": [
-      {
-        "label": "工作经历",
-        "entries": [
-          { "title": "公司名 · 职位", "subtitle": "时间", "bullets": ["增强后bullet1", "bullet2"] }
-        ]
-      },
-      {
-        "label": "项目经历",
-        "entries": [
-          { "title": "项目名", "subtitle": "角色/成果", "bullets": ["增强后bullet1", "bullet2"] }
-        ]
-      }
-    ],
-    "skills": ["技能1", "技能2", "技能3"],
-    "education": { "school": "学校", "degree": "学位", "year": "年份" }
-  }
+  "summary": "一句话",
+  "atsImprovement": 0,
+  "matchScoreImprovement": 0,
+  "aiPmMatchEnhancement": "匹配度说明",
+  "modules": [{ "sourceSection": "", "sectionTitle": "", "original": "", "rewritten": "", "optimizationReasons": ["理由"], "category": "professional", "scoreImprovement": {"ats":0,"professionalism":0,"dataDriven":0} }],
+  "finalResume": { "header": {"name":"","role":"","contact":""}, "summary":"", "sections":[{ "label":"", "entries":[{"title":"","subtitle":"","bullets":[]}] }], "skills":[], "education": {"school":"","degree":"","year":""} }
 }
-
-## 注意事项
-- modules 按简历从上到下顺序输出
-- 每个 rewritten 精炼但完整——好的STAR需要约60-120字符，不设硬限制，以质量为准
-- 每条 optimizationReasons 列出3个具体维度
-- finalResume 是 PDF 唯一数据源
-- 只输出 JSON，不输出其他内容`;
+只输出 JSON，不要其他内容`;
 
 // ─── User Prompt ────────────────────────────────────────────────
 
-function buildRewritePrompt(resumeText: string, jdText: string) {
+function buildRewritePrompt(resumeText: string, jdText: string, deep = false) {
+  const count = deep ? "10-16" : "8-15";
   return `增强以下简历。保留原有结构和顺序，只优化每条内容的表达质量。
 
 === 用户简历 ===
@@ -120,7 +94,7 @@ ${resumeText}
 === 目标岗位JD ===
 ${jdText}
 
-逐条增强简历中的经历和描述（8-15条）。姓名/电话/邮箱等基础信息放入finalResume.header，不放入modules。
+逐条增强简历中的经历和描述（${count}条）。请确保覆盖简历中所有工作经历和项目经历，不要遗漏任何段落。姓名/电话/邮箱等基础信息放入finalResume.header，不放入modules。
 
 严格按简历从上到下顺序输出。优先增强工作经验、项目经历、自我介绍。`;
 }
@@ -141,7 +115,8 @@ function extractJson(text: string): string {
 
 export async function rewriteResume(
   resumeText: string,
-  jdText: string
+  jdText: string,
+  deep = false
 ): Promise<RewriteResult> {
   let lastError: Error | null = null;
 
@@ -150,8 +125,8 @@ export async function rewriteResume(
       const response = await getClient().chat.completions.create({
         model: "deepseek-chat",
         messages: [
-          { role: "system", content: SYSTEM_PROMPT },
-          { role: "user", content: buildRewritePrompt(resumeText, jdText) },
+          { role: "system", content: deep ? DEEP_SYSTEM_PROMPT : FREE_SYSTEM_PROMPT },
+          { role: "user", content: buildRewritePrompt(resumeText, jdText, deep) },
         ],
         temperature: 0.4,
         max_tokens: 16000,

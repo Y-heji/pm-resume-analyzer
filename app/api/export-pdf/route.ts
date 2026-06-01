@@ -4,46 +4,48 @@ import { createElement } from "react";
 import fs from "fs";
 import path from "path";
 import ResumePdfDocument from "@/components/resume-pdf-document";
-import { getTemplate } from "@/lib/resume-templates";
 
 let fontRegistered = false;
 
 function ensureFont() {
   if (fontRegistered) return;
-  const fontPath = path.join(
-    process.cwd(),
-    "public",
-    "fonts",
-    "NotoSansSC.otf"
-  );
-  if (!fs.existsSync(fontPath)) {
-    console.warn("Font file not found at", fontPath);
+  const dir = path.join(process.cwd(), "public", "fonts");
+  const regularPath = path.join(dir, "NotoSansSC.otf");
+  const boldPath = path.join(dir, "NotoSansSC-Bold.otf");
+
+  if (!fs.existsSync(regularPath)) {
+    console.warn("Font not found at", regularPath);
     return;
   }
-  Font.register({
-    family: "Noto Sans SC",
-    fonts: [{ src: fontPath }],
-  });
+
+  const fonts: { src: string; fontWeight?: number }[] = [{ src: regularPath }];
+  if (fs.existsSync(boldPath)) {
+    fonts.push({ src: boldPath, fontWeight: 700 });
+  }
+
+  Font.register({ family: "Noto Sans SC", fonts });
+  // Register bold variant
+  if (fs.existsSync(boldPath)) {
+    Font.register({
+      family: "Noto Sans SC-Bold",
+      fonts: [{ src: boldPath }],
+    });
+  }
   fontRegistered = true;
 }
 
 export async function POST(req: Request) {
   try {
-    const { finalResume, template: templateId } = await req.json();
+    const { finalResume, deepAnalysis } = await req.json();
 
     if (!finalResume) {
-      return NextResponse.json(
-        { error: "缺少简历数据" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "缺少简历数据" }, { status: 400 });
     }
-
-    const template = getTemplate(templateId || "ai-pm");
 
     ensureFont();
 
     const pdfBuffer = await renderToBuffer(
-      createElement(ResumePdfDocument, { finalResume, template })
+      createElement(ResumePdfDocument, { finalResume, deepAnalysis: deepAnalysis || undefined })
     );
 
     return new NextResponse(pdfBuffer, {
@@ -56,9 +58,6 @@ export async function POST(req: Request) {
     });
   } catch (err) {
     console.error("PDF generation error:", err);
-    return NextResponse.json(
-      { error: "PDF 生成失败，请重试" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "PDF 生成失败，请重试" }, { status: 500 });
   }
 }
