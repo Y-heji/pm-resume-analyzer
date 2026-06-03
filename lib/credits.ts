@@ -1,71 +1,58 @@
 import { redis } from "./auth";
 
-export interface Credits {
-  resume_credits: number;
-  interview_credits: number;
-  premium_status: boolean;
+// ─── Entitlements (replaces old Credits) ────────────────
+
+export interface Entitlements {
+  is_premium: boolean;
+  activated_at: string | null;
+  resume_optimize_left: number;
+  mock_interview_left: number;
 }
 
-function creditKey(email: string) { return `credits:${email}`; }
+function key(email: string) { return `entitlements:${email}`; }
 function logKey(email: string) { return `credit_log:${email}`; }
 
-// ═══ CRUD ═══
+// ─── CRUD ───────────────────────────────────────────────
 
-export async function getCredits(email: string): Promise<Credits> {
-  const data = await redis.get<Credits>(creditKey(email));
-  return data || { resume_credits: 0, interview_credits: 0, premium_status: false };
+export async function getEntitlements(email: string): Promise<Entitlements> {
+  const data = await redis.get<Entitlements>(key(email));
+  return data || { is_premium: false, activated_at: null, resume_optimize_left: 0, mock_interview_left: 0 };
 }
 
-export async function setCredits(email: string, c: Credits): Promise<void> {
-  await redis.set(creditKey(email), c);
+async function setEntitlements(email: string, e: Entitlements): Promise<void> {
+  await redis.set(key(email), e);
 }
 
-// ═══ Consume ═══
+// ─── Consume ────────────────────────────────────────────
 
-export async function consumeResumeCredit(email: string): Promise<boolean> {
-  const c = await getCredits(email);
-  if (c.resume_credits <= 0) return false;
-  c.resume_credits--;
-  await setCredits(email, c);
-  await logCredit(email, "resume", -1, "AI深度简历优化");
+export async function consumeResumeOptimize(email: string): Promise<boolean> {
+  const e = await getEntitlements(email);
+  if (e.resume_optimize_left <= 0) return false;
+  e.resume_optimize_left--;
+  await setEntitlements(email, e);
+  await log(email, "resume_optimize", -1, "AI深度简历优化");
   return true;
 }
 
-export async function consumeInterviewCredit(email: string): Promise<boolean> {
-  const c = await getCredits(email);
-  if (c.interview_credits <= 0) return false;
-  c.interview_credits--;
-  await setCredits(email, c);
-  await logCredit(email, "interview", -1, "AI模拟面试");
+export async function consumeMockInterview(email: string): Promise<boolean> {
+  const e = await getEntitlements(email);
+  if (e.mock_interview_left <= 0) return false;
+  e.mock_interview_left--;
+  await setEntitlements(email, e);
+  await log(email, "mock_interview", -1, "AI模拟面试");
   return true;
 }
 
-export async function hasPremiumAccess(email: string): Promise<boolean> {
-  const c = await getCredits(email);
-  return c.premium_status || c.resume_credits > 0;
+export async function isPremium(email: string): Promise<boolean> {
+  const e = await getEntitlements(email);
+  return e.is_premium;
 }
 
-// ═══ Add Credits (from redeem codes) ═══
-
-export async function addCredits(
-  email: string,
-  resume: number,
-  interview: number,
-  detail: string
-): Promise<void> {
-  const c = await getCredits(email);
-  c.resume_credits += resume;
-  c.interview_credits += interview;
-  await setCredits(email, c);
-  if (resume > 0) await logCredit(email, "resume", resume, detail);
-  if (interview > 0) await logCredit(email, "interview", interview, detail);
-}
-
-// ═══ Redeem Code ═══
+// ─── Redeem Code ────────────────────────────────────────
 
 export interface RedeemCode {
-  resume_credits: number;
-  interview_credits: number;
+  resume_optimize: number;
+  mock_interview: number;
   used: boolean;
   used_by: string | null;
   created_at: string;
@@ -77,18 +64,35 @@ export async function getRedeemCode(code: string): Promise<RedeemCode | null> {
 
 export async function markCodeUsed(code: string, email: string): Promise<void> {
   await redis.del(`redeem:${code}`);
-  await logCredit(email, "redeem", 0, `兑换码 ${code} 已使用并销毁`);
+  await log(email, "redeem", 0, `兑换码 ${code} 已使用并销毁`);
+}
+
+// Redeem a code: activates premium + sets entitlements
+export async function redeemCode(email: string, code: string): Promise<RedeemCode | null> {
+  const redeem = await getRedeemCode(code);
+  if (!redeem) return null;
+  if (redeem.used) return null;
+
+  const e = await getEntitlements(email);
+  e.is_premium = true;
+  e.activated_at = new Date().toISOString();
+  e.resume_optimize_left += redeem.resume_optimize;
+  e.mock_interview_left += redeem.mock_interview;
+  await setEntitlements(email, e);
+  await markCodeUsed(code, email);
+
+  return redeem;
 }
 
 export async function createRedeemCodes(
   codes: string[],
-  resumeCredits: number,
-  interviewCredits: number
+  resumeOptimize: number,
+  mockInterview: number
 ): Promise<void> {
   for (const code of codes) {
     await redis.set(`redeem:${code}`, {
-      resume_credits: resumeCredits,
-      interview_credits: interviewCredits,
+      resume_optimize: resumeOptimize,
+      mock_interview: mockInterview,
       used: false,
       used_by: null,
       created_at: new Date().toISOString(),
@@ -96,24 +100,39 @@ export async function createRedeemCodes(
   }
 }
 
-// ═══ Credit Log ═══
+// ─── Credit Log ─────────────────────────────────────────
 
-export async function logCredit(
+async function log(
   email: string,
-  type: "resume" | "interview",
+  type: string,
   amount: number,
   detail: string
 ): Promise<void> {
-  const entry = {
-    type,
-    amount,
-    detail,
-    time: new Date().toISOString(),
-  };
+  const entry = { type, amount, detail, time: new Date().toISOString() };
   await redis.lpush(logKey(email), entry);
-  await redis.ltrim(logKey(email), 0, 199); // keep last 200
+  await redis.ltrim(logKey(email), 0, 199);
 }
 
 export async function getCreditLogs(email: string): Promise<any[]> {
   return redis.lrange(logKey(email), 0, -1) as any;
+}
+
+// ─── Guest Codes (one-time, no login) ────────────────────
+
+export async function createGuestCodes(codes: string[], paidInterviews: number): Promise<void> {
+  for (const code of codes) {
+    await redis.set(`guest_code:${code}`, {
+      paid_interviews: paidInterviews,
+      used: false,
+      created_at: new Date().toISOString(),
+    });
+  }
+}
+
+export async function redeemGuestCode(code: string): Promise<number | null> {
+  const key = `guest_code:${code}`;
+  const data = await redis.get<{ paid_interviews: number; used: boolean }>(key);
+  if (!data || data.used) return null;
+  await redis.del(key); // one-time: destroy immediately
+  return data.paid_interviews;
 }

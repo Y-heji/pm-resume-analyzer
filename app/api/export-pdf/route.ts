@@ -1,8 +1,25 @@
 import { NextResponse } from "next/server";
 import puppeteer from "puppeteer-core";
+import chromium from "@sparticuz/chromium";
 import { renderHTML } from "@/lib/pdf-html-renderer";
 
-const EDGE_PATH = "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe";
+async function getBrowser() {
+  if (process.env.VERCEL) {
+    const exePath = await chromium.executablePath();
+    console.log("[pdf] chromium path:", exePath);
+    return puppeteer.launch({
+      args: [...chromium.args, "--no-sandbox"],
+      executablePath: exePath,
+      headless: true,
+    });
+  }
+  // Local dev: use system Edge
+  return puppeteer.launch({
+    executablePath: "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe",
+    headless: true,
+    args: ["--no-sandbox", "--disable-setuid-sandbox"],
+  });
+}
 
 export async function POST(req: Request) {
   try {
@@ -10,12 +27,7 @@ export async function POST(req: Request) {
     if (!finalResume) return NextResponse.json({ error: "缺少简历数据" }, { status: 400 });
 
     const html = renderHTML(finalResume, templateId || "swiss");
-    const browser = await puppeteer.launch({
-      executablePath: EDGE_PATH,
-      headless: true,
-      args: ["--no-sandbox", "--disable-setuid-sandbox"],
-    });
-
+    const browser = await getBrowser();
     const page = await browser.newPage();
     await page.setContent(html, { waitUntil: "load" });
     const pdfBuffer = await page.pdf({

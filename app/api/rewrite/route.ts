@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { rewriteResume } from "@/lib/rewrite";
+import { getCurrentUser } from "@/lib/auth";
+import { getEntitlements, consumeResumeOptimize } from "@/lib/credits";
 
 export async function POST(req: Request) {
   try {
@@ -24,6 +26,19 @@ export async function POST(req: Request) {
         { error: "岗位JD过短" },
         { status: 400 }
       );
+    }
+
+    // Deep rewrite consumes resume_optimize_left
+    if (deep === true) {
+      const email = await getCurrentUser();
+      if (!email) {
+        return NextResponse.json({ error: "深度优化需要先登录" }, { status: 401 });
+      }
+      const e = await getEntitlements(email);
+      if (e.resume_optimize_left <= 0) {
+        return NextResponse.json({ error: "AI深度优化次数不足，请先兑换" }, { status: 403 });
+      }
+      await consumeResumeOptimize(email);
     }
 
     const result = await rewriteResume(resumeText, jdText, deep === true);

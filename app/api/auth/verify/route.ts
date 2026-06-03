@@ -1,15 +1,27 @@
 import { NextResponse } from "next/server";
-import { verifyCode, signToken, setAuthCookie, getOrCreateUser } from "@/lib/auth";
+import { jwtVerify } from "jose";
+import { signToken, setAuthCookie, getOrCreateUser } from "@/lib/auth";
+
+const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET || "pm-resume-jwt-2026-heji-secret-key");
 
 export async function POST(req: Request) {
   try {
-    const { email, code } = await req.json();
-    if (!email || !code) {
+    const { email, code, codeToken } = await req.json();
+    if (!email || !code || !codeToken) {
       return NextResponse.json({ error: "邮箱和验证码不能为空" }, { status: 400 });
     }
 
     const normalized = email.toLowerCase().trim();
-    const valid = await verifyCode(normalized, code);
+
+    // Verify codeToken JWT
+    let valid = false;
+    try {
+      const { payload } = await jwtVerify(codeToken, JWT_SECRET);
+      if (payload.email === normalized && payload.code === code.trim()) {
+        valid = true;
+      }
+    } catch {}
+
     if (!valid) {
       return NextResponse.json({ error: "验证码错误或已过期" }, { status: 401 });
     }

@@ -1,6 +1,4 @@
 import OpenAI from "openai";
-import fs from "fs";
-import path from "path";
 
 // ─── Types ──────────────────────────────────────
 
@@ -38,23 +36,16 @@ export interface InterviewSession {
   createdAt: string;
 }
 
-// ─── Storage ────────────────────────────────────
+// ─── In-memory Storage ──────────────────────────
 
-const DATA_DIR = path.join(process.cwd(), "data", "interviews");
-
-function ensureDir() {
-  if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
-}
+const sessionStore = new Map<string, InterviewSession>();
 
 export function saveSession(session: InterviewSession) {
-  ensureDir();
-  fs.writeFileSync(path.join(DATA_DIR, `${session.id}.json`), JSON.stringify(session, null, 2), "utf-8");
+  sessionStore.set(session.id, session);
 }
 
 export function loadSession(id: string): InterviewSession | null {
-  const file = path.join(DATA_DIR, `${id}.json`);
-  if (!fs.existsSync(file)) return null;
-  return JSON.parse(fs.readFileSync(file, "utf-8"));
+  return sessionStore.get(id) || null;
 }
 
 // ─── AI Client ──────────────────────────────────

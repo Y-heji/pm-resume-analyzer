@@ -27,6 +27,19 @@ export default function AnalyzePage() {
   const [jdText, setJdText] = useState("");
   const [analyzing, setAnalyzing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isPaid, setIsPaid] = useState(false);
+
+  // Check server-side entitlements for deep analysis
+  useEffect(() => {
+    fetch("/api/auth/me")
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.email && d.resume_optimize_left > 0) {
+          setIsPaid(true);
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   // Persist parsed resume so user can switch JD without re-uploading
   useEffect(() => {
@@ -102,25 +115,12 @@ export default function AnalyzePage() {
     return results;
   }, [resumeText]);
 
-  const isPaid = typeof window !== "undefined" && parseInt(sessionStorage.getItem("unlockCount") || "0", 10) > 0;
   const abortRef = useRef<AbortController | null>(null);
 
   async function handleAnalyze() {
     if (!resumeText || !jdText.trim()) {
       setError("请上传简历并填写岗位 JD");
       return;
-    }
-
-    // Check server credits if logged in
-    let serverCredits = 0;
-    try {
-      const me = await fetch("/api/auth/me").then(r => r.json());
-      if (me.credits) serverCredits = me.credits.resume_credits || 0;
-    } catch {}
-
-    const hasCredits = serverCredits > 0 || isPaid;
-    if (!hasCredits && isPaid === false) {
-      // Free mode — no deep analysis
     }
 
     // Cancel any in-flight request

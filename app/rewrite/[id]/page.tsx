@@ -6,7 +6,7 @@ import type { RewriteResult } from "@/lib/types";
 import { track } from "@/lib/analytics";
 import RewriteSectionCard from "@/components/rewrite-section-card";
 import type { RewriteModule } from "@/lib/types";
-import UnlockCTA, { consumeUnlock, getRemainingUses } from "@/components/unlock-cta";
+import UnlockCTA from "@/components/unlock-cta";
 
 const LOADING_STEPS = [
   { icon: "&#x1F50D;", label: "正在分析 ATS 关键词…" },
@@ -413,29 +413,15 @@ export default function RewritePage() {
         <div className="flex gap-3 justify-center">
           <button
             onClick={() => {
-              const remaining = getRemainingUses();
-              const hasDeep = (() => { try { const r = sessionStorage.getItem(id); return r ? !!JSON.parse(r).deepAnalysis : false; } catch { return false; } })();
-              if (remaining <= 0 && !hasDeep) { scrollToUnlock(); return; }
-              if (remaining > 0 && !hasDeep) consumeUnlock();
               sessionStorage.setItem(`${id}_preview`, "full");
               track("rewrite_pdf_export", { analysisId: id });
               router.push(`/rewrite/${id}/preview`);
             }}
-            className={`px-5 py-2.5 text-sm font-medium rounded-xl transition-colors inline-flex items-center gap-2 ${
-              isPreview
-                ? "bg-gray-900 text-white hover:bg-gray-800"
-                : "bg-white border border-gray-300 text-gray-700 hover:bg-gray-50"
-            }`}
+            className="px-5 py-2.5 text-sm font-medium rounded-xl transition-colors inline-flex items-center gap-2 bg-gray-900 text-white hover:bg-gray-800"
           >
-            {isPreview ? (
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-              </svg>
-            ) : (
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-              </svg>
-            )}
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
             预览并导出 PDF
           </button>
           <button

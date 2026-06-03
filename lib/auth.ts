@@ -4,8 +4,8 @@ import { cookies } from "next/headers";
 
 // ═══ Redis ═══
 const redis = new Redis({
-  url: process.env.UPSTASH_REDIS_REST_URL!,
-  token: process.env.UPSTASH_REDIS_REST_TOKEN!,
+  url: (process.env.UPSTASH_REDIS_REST_URL || "").replace(/^"|"$/g, ""),
+  token: (process.env.UPSTASH_REDIS_REST_TOKEN || "").replace(/^"|"$/g, ""),
 });
 
 // ═══ JWT ═══
@@ -46,6 +46,7 @@ export async function saveCode(email: string, code: string): Promise<void> {
 
 export async function verifyCode(email: string, code: string): Promise<boolean> {
   const stored = await redis.get(`code:${email}`);
+  console.log("[verifyCode] email:", email, "stored:", stored, "code:", code, "match:", stored === code);
   if (stored === code) {
     await redis.del(`code:${email}`);
     return true;

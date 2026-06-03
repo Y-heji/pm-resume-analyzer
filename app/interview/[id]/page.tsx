@@ -22,12 +22,42 @@ export default function InterviewPage() {
   const [report, setReport] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [isDeep, setIsDeep] = useState(false);
+  const [guestTrial, setGuestTrial] = useState(false);
+  const [entitlementsChecked, setEntitlementsChecked] = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
 
-  const isDeep = typeof window !== "undefined" && (getRemainingUses() > 0 || (() => { try { const r = sessionStorage.getItem(id); return r ? !!JSON.parse(r).deepAnalysis : false; } catch { return false; } })());
+  // Check entitlements + guest trial FIRST, then start interview
+  useEffect(() => {
+    // Guest trial from sessionStorage (sync, no delay)
+    const guestCount = parseInt(sessionStorage.getItem("guest_paid_interviews") || "0", 10);
+    if (guestCount > 0) {
+      setIsDeep(true);
+      setGuestTrial(true);
+      setEntitlementsChecked(true);
+      return;
+    }
+
+    // Check server entitlements for logged-in users
+    fetch("/api/auth/me")
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.email && d.mock_interview_left > 0) {
+          setIsDeep(true);
+        }
+      })
+      .catch(() => {})
+      .finally(() => {
+        setEntitlementsChecked(true);
+      });
+  }, []);
+
   const tier = isDeep ? "paid" : "free";
 
+  // Start interview only AFTER entitlements are checked
   useEffect(() => {
+    if (!entitlementsChecked) return; // wait for entitlements check
+
     const resumeText = sessionStorage.getItem(`${id}_resume`);
     const jdText = sessionStorage.getItem(`${id}_jd`);
     if (!resumeText || !jdText) {
@@ -39,11 +69,18 @@ export default function InterviewPage() {
     fetch("/api/interview", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "start", resumeText, jdText, deep: isDeep }),
+      body: JSON.stringify({ action: "start", resumeText, jdText, deep: isDeep, guest: guestTrial }),
     })
       .then(r => r.json())
       .then(data => {
         if (data.error) throw new Error(data.error);
+        // Consume guest trial if using guest access
+        if (isDeep) {
+          const guestCount = parseInt(sessionStorage.getItem("guest_paid_interviews") || "0", 10);
+          if (guestCount > 0) {
+            sessionStorage.setItem("guest_paid_interviews", String(guestCount - 1));
+          }
+        }
         setSessionId(data.sessionId);
         setTotal(data.total);
         setStep(1);

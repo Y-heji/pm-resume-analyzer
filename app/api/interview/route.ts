@@ -1,17 +1,33 @@
 import { NextResponse } from "next/server";
 import { startInterview, submitAnswer, endInterview, loadSession, type InterviewSession } from "@/lib/interview";
+import { getCurrentUser } from "@/lib/auth";
+import { getEntitlements, consumeMockInterview } from "@/lib/credits";
 
 const freeSessions = new Map<string, InterviewSession>();
 
 export async function POST(req: Request) {
   try {
-    const { action, sessionId, resumeText, jdText, deep, answer } = await req.json();
+    const { action, sessionId, resumeText, jdText, deep, answer, guest } = await req.json();
 
     if (action === "start") {
       if (!resumeText || !jdText) {
         return NextResponse.json({ error: "缺少简历或岗位信息" }, { status: 400 });
       }
       const tier = deep ? "paid" : "free";
+
+      // Paid tier: consume from logged-in user, but NOT if using guest trial
+      if (tier === "paid" && !guest) {
+        const email = await getCurrentUser();
+        if (email) {
+          const e = await getEntitlements(email);
+          if (e.mock_interview_left > 0) {
+            await consumeMockInterview(email);
+          } else {
+            return NextResponse.json({ error: "面试次数不足，请先兑换" }, { status: 403 });
+          }
+        }
+      }
+
       const { session, firstQuestion } = await startInterview(resumeText, jdText, tier);
       if (tier === "free") freeSessions.set(session.id, session);
       return NextResponse.json({
