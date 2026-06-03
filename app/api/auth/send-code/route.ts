@@ -17,8 +17,7 @@ export async function POST(req: Request) {
     return NextResponse.json({
       success: true,
       message: "验证码已发送",
-      // MVP: return code directly since we don't have email service yet
-      code: process.env.NODE_ENV === "development" ? code : undefined,
+      code, // MVP: always show code until email service is integrated
     });
   } catch (err: any) {
     return NextResponse.json({ error: "发送失败：" + err.message }, { status: 500 });
