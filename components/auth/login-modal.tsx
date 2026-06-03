@@ -9,6 +9,7 @@ interface Props {
 export default function LoginModal({ onClose }: Props) {
   const [email, setEmail] = useState("");
   const [code, setCode] = useState("");
+  const [sentCode, setSentCode] = useState(""); // MVP: show code directly
   const [step, setStep] = useState<"email" | "code">("email");
   const [sending, setSending] = useState(false);
   const [error, setError] = useState("");
@@ -24,6 +25,7 @@ export default function LoginModal({ onClose }: Props) {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
+      if (data.code) setSentCode(data.code); // MVP: capture code from response
       setStep("code");
     } catch (err: any) {
       setError(err.message);
@@ -64,7 +66,8 @@ export default function LoginModal({ onClose }: Props) {
           </>
         ) : (
           <>
-            <p className="text-xs text-gray-500 mb-3">验证码已发送到 {email}</p>
+            <p className="text-xs text-gray-500 mb-1">验证码已发送到 {email}</p>
+            {sentCode && <p className="text-lg font-bold text-blue-600 mb-2 tracking-[4px] text-center">{sentCode}</p>}
             <input type="text" value={code} onChange={(e) => setCode(e.target.value)}
               placeholder="输入6位验证码" maxLength={6} className="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-gray-900"
               onKeyDown={(e) => e.key === "Enter" && verifyCode()} />
