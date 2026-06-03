@@ -9,7 +9,6 @@ interface Props {
 export default function LoginModal({ onClose }: Props) {
   const [email, setEmail] = useState("");
   const [code, setCode] = useState("");
-  const [sentCode, setSentCode] = useState(""); // MVP: show code directly
   const [step, setStep] = useState<"email" | "code">("email");
   const [sending, setSending] = useState(false);
   const [error, setError] = useState("");
@@ -25,7 +24,6 @@ export default function LoginModal({ onClose }: Props) {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
-      if (data.code) setSentCode(data.code); // MVP: capture code from response
       setStep("code");
     } catch (err: any) {
       setError(err.message);
