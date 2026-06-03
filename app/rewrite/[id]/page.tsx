@@ -6,7 +6,7 @@ import type { RewriteResult } from "@/lib/types";
 import { track } from "@/lib/analytics";
 import RewriteSectionCard from "@/components/rewrite-section-card";
 import type { RewriteModule } from "@/lib/types";
-import UnlockCTA from "@/components/unlock-cta";
+import UnlockCTA, { consumeUnlock, getRemainingUses } from "@/components/unlock-cta";
 
 const LOADING_STEPS = [
   { icon: "&#x1F50D;", label: "正在分析 ATS 关键词…" },
@@ -56,15 +56,27 @@ export default function RewritePage() {
   useEffect(() => {
     const resumeText = sessionStorage.getItem(`${id}_resume`);
     const jdText = sessionStorage.getItem(`${id}_jd`);
-    let deep = sessionStorage.getItem("unlocked") === "true";
-    if (!deep) {
-      try { const raw = sessionStorage.getItem(id); if (raw) deep = !!JSON.parse(raw).deepAnalysis; } catch {}
-    }
 
     if (!resumeText || !jdText) {
       setError("未找到简历或 JD 数据，请返回重新分析");
       setPhase("error");
       return;
+    }
+
+    // Check cache first — avoid re-fetching when navigating back
+    const cached = sessionStorage.getItem(`${id}_rewrite`);
+    if (cached) {
+      try {
+        const data = JSON.parse(cached);
+        setResult(data);
+        setPhase("result");
+        return;
+      } catch {}
+    }
+
+    let deep = sessionStorage.getItem("unlocked") === "true";
+    if (!deep) {
+      try { const raw = sessionStorage.getItem(id); if (raw) deep = !!JSON.parse(raw).deepAnalysis; } catch {}
     }
 
     let cancelled = false;
@@ -401,9 +413,10 @@ export default function RewritePage() {
         <div className="flex gap-3 justify-center">
           <button
             onClick={() => {
-              const unlocked = sessionStorage.getItem("unlocked") === "true";
+              const remaining = getRemainingUses();
               const hasDeep = (() => { try { const r = sessionStorage.getItem(id); return r ? !!JSON.parse(r).deepAnalysis : false; } catch { return false; } })();
-              if (!unlocked && !hasDeep) { scrollToUnlock(); return; }
+              if (remaining <= 0 && !hasDeep) { scrollToUnlock(); return; }
+              if (remaining > 0 && !hasDeep) consumeUnlock();
               sessionStorage.setItem(`${id}_preview`, "full");
               track("rewrite_pdf_export", { analysisId: id });
               router.push(`/rewrite/${id}/preview`);

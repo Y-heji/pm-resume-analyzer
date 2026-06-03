@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>个人简历</title>
+<style>
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    background: #e0ddd5;
+    display: flex; justify-content: center; padding: 36px 16px;
+    color: #1a1a1a;
+    line-height: 1.7;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .page {
+    width: 794px; min-height: 1123px;
+    background: #fdfaf4;
+    display: flex;
+    box-shadow: 0 2px 20px rgba(0,0,0,0.1), 0 0 0 0.5px rgba(0,0,0,0.05);
+  }
+
+  /* ━━━ Left Sidebar ━━━ */
+  .sidebar {
+    width: 210px; flex-shrink: 0;
+    background: #1a1a1a;
+    color: #d4cfc5;
+    padding: 40px 24px 36px 24px;
+    display: flex; flex-direction: column; gap: 32px;
+  }
+  .sidebar .avatar {
+    width: 72px; height: 72px; border-radius: 50%;
+    background: #c8a96e; color: #1a1a1a;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 32px; font-weight: 900; letter-spacing: 2px;
+    margin-bottom: 4px;
+  }
+  .sidebar .name { font-size: 22px; font-weight: 800; color: #fff; letter-spacing: 1px; }
+  .sidebar .role { font-size: 10px; color: #c8a96e; letter-spacing: 3px; text-transform: uppercase; margin-top: 2px; }
+
+  .side-section h3 {
+    font-size: 9px; font-weight: 700; letter-spacing: 3px; text-transform: uppercase;
+    color: #c8a96e; margin-bottom: 10px; padding-bottom: 6px;
+    border-bottom: 1px solid #333;
+  }
+  .side-section p { font-size: 10.5px; color: #bbb; line-height: 1.7; }
+  .side-section .info-row { font-size: 10.5px; color: #bbb; margin-bottom: 4px; }
+  .side-section .info-label { color: #888; font-size: 9px; letter-spacing: 1px; text-transform: uppercase; }
+  .side-section .info-value { color: #d4cfc5; }
+
+  .skill-dots { display: flex; flex-direction: column; gap: 6px; }
+  .skill-dot-row { display: flex; justify-content: space-between; align-items: center; }
+  .skill-dot-row span { font-size: 10px; color: #d4cfc5; }
+  .dots { display: flex; gap: 2px; }
+  .dot { width: 6px; height: 6px; border-radius: 50%; }
+  .dot.on { background: #c8a96e; }
+  .dot.off { background: #444; }
+
+  /* ━━━ Main Content ━━━ */
+  .main {
+    flex: 1; padding: 40px 36px 36px 36px;
+    display: flex; flex-direction: column; gap: 28px;
+  }
+
+  .section-title {
+    font-size: 10px; font-weight: 800; letter-spacing: 3px; text-transform: uppercase;
+    color: #c8a96e; margin-bottom: 14px; padding-bottom: 6px;
+    border-bottom: 1.5px solid #e8e0d0;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .section-title::before {
+    content: ''; width: 4px; height: 14px; background: #c8a96e; display: block;
+  }
+
+  .summary { font-size: 11.5px; color: #555; line-height: 1.8; padding: 14px 16px; background: #faf6ed; border-left: 2px solid #c8a96e; border-radius: 0 4px 4px 0; }
+
+  /* Entry */
+  .entry { margin-bottom: 18px; position: relative; padding-left: 16px; }
+  .entry::before { content: ''; position: absolute; left: 0; top: 4px; width: 6px; height: 6px; border-radius: 50%; background: #c8a96e; }
+  .entry-header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 2px; }
+  .entry-title { font-size: 13px; font-weight: 700; color: #1a1a1a; }
+  .entry-sub { font-size: 11px; color: #888; margin-bottom: 4px; }
+  .entry-date { font-size: 10.5px; color: #bbb; white-space: nowrap; font-weight: 600; letter-spacing: 0.5px; }
+  .entry-bullets { padding-left: 12px; margin-top: 6px; list-style: none; }
+  .entry-bullets li { font-size: 11px; color: #555; margin-bottom: 3px; line-height: 1.65; position: relative; padding-left: 10px; }
+  .entry-bullets li::before { content: '▸'; position: absolute; left: -4px; color: #c8a96e; font-size: 8px; }
+
+  /* Tags */
+  .tags { display: flex; flex-wrap: wrap; gap: 6px; }
+  .tag { font-size: 10px; color: #8a7a5a; background: #faf6ed; padding: 4px 10px; border: 1px solid #e8e0d0; border-radius: 2px; letter-spacing: 0.5px; }
+
+  /* Timeline highlight */
+  .highlight-number {
+    font-size: 40px; font-weight: 900; color: #f0e8d5; letter-spacing: -2px;
+    position: absolute; right: 0; top: -16px; pointer-events: none; user-select: none;
+  }
+
+  .main-header { position: relative; }
+</style>
+</head>
+<body>
+
+<div class="page">
+  <!-- ═══ LEFT SIDEBAR ═══ -->
+  <div class="sidebar">
+    <div>
+      <div class="avatar">王</div>
+      <div class="name" style="margin-top:14px;">王建国</div>
+      <div class="role">工程项目管理</div>
+    </div>
+
+    <div class="side-section">
+      <h3>基本信息</h3>
+      <p>
+        <span class="info-label">所在地</span><br>
+        <span class="info-value">广东 · 惠州</span><br><br>
+        <span class="info-label">工作年限</span><br>
+        <span class="info-value">8 年</span><br><br>
+        <span class="info-label">学历</span><br>
+        <span class="info-value">大专（在职）</span><br><br>
+        <span class="info-label">出生年份</span><br>
+        <span class="info-value">199X</span>
+      </p>
+    </div>
+
+    <div class="side-section">
+      <h3>联系方式</h3>
+      <p>
+        138-0000-0000<br>
+        wangjianguo@email.com
+      </p>
+    </div>
+
+    <div class="side-section">
+      <h3>核心能力</h3>
+      <div class="skill-dots">
+        <div class="skill-dot-row"><span>全流程项目管控</span><div class="dots"><span class="dot on"></span><span class="dot on"></span><span class="dot on"></span><span class="dot on"></span><span class="dot on"></span></div></div>
+        <div class="skill-dot-row"><span>对上汇报与公文</span><div class="dots"><span class="dot on"></span><span class="dot on"></span><span class="dot on"></span><span class="dot on"></span><span class="dot on"></span></div></div>
+        <div class="skill-dot-row"><span>行政管理</span><div class="dots"><span class="dot on"></span><span class="dot on"></span><span class="dot on"></span><span class="dot on"></span><span class="dot off"></span></div></div>
+        <div class="skill-dot-row"><span>招聘协调</span><div class="dots"><span class="dot on"></span><span class="dot on"></span><span class="dot on"></span><span class="dot on"></span><span class="dot off"></span></div></div>
+        <div class="skill-dot-row"><span>跨部门沟通</span><div class="dots"><span class="dot on"></span><span class="dot on"></span><span class="dot on"></span><span class="dot on"></span><span class="dot on"></span></div></div>
+        <div class="skill-dot-row"><span>AI工具应用</span><div class="dots"><span class="dot on"></span><span class="dot on"></span><span class="dot on"></span><span class="dot on"></span><span class="dot off"></span></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ MAIN CONTENT ═══ -->
+  <div class="main">
+    <div class="main-header">
+      <div style="font-size:11px;text-transform:uppercase;letter-spacing:4px;color:#c8a96e;margin-bottom:8px;font-weight:700">Personal Resume</div>
+      <div style="font-size:28px;font-weight:900;color:#1a1a1a;letter-spacing:-0.5px;line-height:1.1">
+        工程项目负责人<br>
+        <span style="font-weight:300;color:#888;font-size:18px;">8年政府基层经验 · 全流程管控能力</span>
+      </div>
+      <div class="highlight-number">08</div>
+    </div>
+
+    <div>
+      <div class="section-title">个人总结</div>
+      <div class="summary">
+        8年政府基层工作经验，在同一镇政府稳定服务，对镇级运作体系理解深入。兼具工程项目全流程管理、行政事务管理、招聘协调等多方面实操能力。学习能力强，业余自学AI编程工具独立搭建商业网站。执行力强、条理清晰，能抗压、能跑现场、能对结果负责。
+      </div>
+    </div>
+
+    <div>
+      <div class="section-title">工作经历</div>
+
+      <div class="entry">
+        <div class="entry-header">
+          <span class="entry-title">综合事务中心 · 泰美镇人民政府</span>
+          <span class="entry-date">2024.02 – 至今</span>
+        </div>
+        <div class="entry-sub">项目负责人</div>
+        <ul class="entry-bullets">
+          <li>独立负责多个<b>400万以上</b>工程类项目全生命周期管理，涵盖立项申报、招标文件审核、施工进度管控、竣工验收</li>
+          <li>定期向<b>县级主管部门</b>报送数据与汇报材料，确保信息准确、流程合规，累计报送<b>数十份</b>阶段性报告</li>
+          <li>协调施工方、监理方、设计方等多方力量，处理现场突发问题，推动项目按计划节点高质量交付</li>
+          <li>负责部门行政事务管理，包括制度完善、公文撰写、<b>档案规范化管理</b></li>
+        </ul>
+      </div>
+
+      <div class="entry">
+        <div class="entry-header">
+          <span class="entry-title">征地办 · 泰美镇人民政府</span>
+          <span class="entry-date">2018.07 – 2024.01</span>
+        </div>
+        <div class="entry-sub">工作人员</div>
+        <ul class="entry-bullets">
+          <li>负责征地项目数据采集、表格填报与汇总分析，对接国土、规划等上级部门</li>
+          <li>深入一线开展<b>征地协调工作</b>，向村民解读补偿政策、化解矛盾纠纷，保障项目用地顺利交付</li>
+          <li>整理归档征地项目档案，做到<b>一项目一档案</b>，完整可追溯</li>
+          <li>协助部门招聘工作，参与简历筛选、面试邀约及人才对接</li>
+        </ul>
+      </div>
+    </div>
+
+    <div>
+      <div class="section-title">项目经验</div>
+      <div class="entry">
+        <div class="entry-header">
+          <span class="entry-title">多个 400万+ 工程项目</span>
+          <span class="entry-date">全流程管理</span>
+        </div>
+        <ul class="entry-bullets">
+          <li><b>前期：</b>参与可行性研究，编制立项报告向上级申报</li>
+          <li><b>招标：</b>审核招标文件、参与评标，确保流程合规</li>
+          <li><b>施工：</b>定期巡查现场、组织进度协调会、处理设计变更</li>
+          <li><b>验收：</b>组织五方验收、整理竣工资料、完成结算与归档</li>
+        </ul>
+      </div>
+    </div>
+
+    <div style="display:flex; gap:32px">
+      <div style="flex:1">
+        <div class="section-title">专业技能</div>
+        <div class="tags">
+          <span class="tag">工程项目全流程</span>
+          <span class="tag">公文写作</span>
+          <span class="tag">数据汇报</span>
+          <span class="tag">档案管理</span>
+          <span class="tag">制度完善</span>
+          <span class="tag">招聘流程</span>
+          <span class="tag">跨部门协调</span>
+          <span class="tag">Excel/Word</span>
+          <span class="tag">C1 驾照</span>
+          <span class="tag">AI 工具应用</span>
+          <span class="tag">Claude Code</span>
+        </div>
+      </div>
+      <div style="flex-shrink:0">
+        <div class="section-title">教育背景</div>
+        <div style="font-size:12px;font-weight:700;color:#1a1a1a">广东工贸职业技术学院</div>
+        <div style="font-size:10.5px;color:#888">大专 · 信息管理 · 2021–2023（在职）</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

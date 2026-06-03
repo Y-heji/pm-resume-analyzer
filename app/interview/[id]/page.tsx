@@ -24,10 +24,7 @@ export default function InterviewPage() {
   const [submitting, setSubmitting] = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
 
-  const isDeep = typeof window !== "undefined" && (
-    sessionStorage.getItem("unlocked") === "true"
-    || (() => { try { const r = sessionStorage.getItem(id); return r ? !!JSON.parse(r).deepAnalysis : false; } catch { return false; } })()
-  );
+  const isDeep = typeof window !== "undefined" && (getRemainingUses() > 0 || (() => { try { const r = sessionStorage.getItem(id); return r ? !!JSON.parse(r).deepAnalysis : false; } catch { return false; } })());
   const tier = isDeep ? "paid" : "free";
 
   useEffect(() => {

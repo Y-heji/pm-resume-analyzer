@@ -102,13 +102,25 @@ export default function AnalyzePage() {
     return results;
   }, [resumeText]);
 
-  const isPaid = typeof window !== "undefined" && sessionStorage.getItem("unlocked") === "true";
+  const isPaid = typeof window !== "undefined" && parseInt(sessionStorage.getItem("unlockCount") || "0", 10) > 0;
   const abortRef = useRef<AbortController | null>(null);
 
   async function handleAnalyze() {
     if (!resumeText || !jdText.trim()) {
       setError("请上传简历并填写岗位 JD");
       return;
+    }
+
+    // Check server credits if logged in
+    let serverCredits = 0;
+    try {
+      const me = await fetch("/api/auth/me").then(r => r.json());
+      if (me.credits) serverCredits = me.credits.resume_credits || 0;
+    } catch {}
+
+    const hasCredits = serverCredits > 0 || isPaid;
+    if (!hasCredits && isPaid === false) {
+      // Free mode — no deep analysis
     }
 
     // Cancel any in-flight request

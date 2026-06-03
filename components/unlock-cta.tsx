@@ -3,6 +3,17 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { track } from "@/lib/analytics";
 
+export function consumeUnlock(): boolean {
+  const count = parseInt(sessionStorage.getItem("unlockCount") || "0", 10);
+  if (count <= 0) return false;
+  sessionStorage.setItem("unlockCount", String(count - 1));
+  return true;
+}
+
+export function getRemainingUses(): number {
+  return parseInt(sessionStorage.getItem("unlockCount") || "0", 10);
+}
+
 const FULL_VERSION_FEATURES = [
   { icon: "&#x1F4DD;", label: "完整项目经历 AI 重写" },
   { icon: "&#x1F3AF;", label: "ATS 关键词全面注入" },
@@ -12,6 +23,10 @@ const FULL_VERSION_FEATURES = [
   { icon: "&#x1F4CA;", label: "增长与数据驱动表达" },
   { icon: "&#x1F4BC;", label: "工作经验专业化改写" },
   { icon: "&#x1F4E4;", label: "导出专业 PDF 简历" },
+  { icon: "&#x1F3A4;", label: "模拟面试：AI 全真场景对话" },
+  { icon: "&#x26A0;", label: "面试避雷：岗位风险点预警" },
+  { icon: "&#x1F4AC;", label: "面试话术：应答策略与技巧" },
+  { icon: "&#x1F4CB;", label: "面试报告：优劣势与通过率评估" },
 ];
 
 const JOB_DIRECTIONS = ["AI PM", "产品经理", "数据分析", "运营", "技术转PM", "其他"];
@@ -108,11 +123,11 @@ export default function UnlockCTA({ premiumCount }: Props) {
             当前仅展示前 6 个模块。完整版覆盖所有改写维度 + 导出专业 PDF。
           </p>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 mb-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-2">
             {FULL_VERSION_FEATURES.map((f) => (
               <div
                 key={f.label}
-                className="flex items-center gap-2.5 p-2.5 rounded-lg bg-gray-50"
+                className="flex items-center gap-2.5 p-2.5 rounded-lg bg-gray-50 border border-transparent hover:border-gray-200 hover:bg-white transition-colors"
               >
                 <span
                   className="text-sm shrink-0"
@@ -131,13 +146,18 @@ export default function UnlockCTA({ premiumCount }: Props) {
         </div>
 
         {/* Payment + Unlock */}
-        <div className="border-t border-gray-100 p-6 md:p-8">
-          <h4 className="text-sm font-semibold text-gray-900 mb-2">
-            立即解锁 — ￥19.9
-          </h4>
-          <p className="text-xs text-gray-500 mb-4">
-            微信/支付宝付款后获取解锁码。一次付费，永久使用。
-          </p>
+        <div className="border-t border-gray-100 p-6 md:p-8 bg-gradient-to-r from-gray-50 to-white">
+          <div className="flex items-center justify-between flex-wrap gap-4 mb-4">
+            <div>
+              <h4 className="text-sm font-bold text-gray-900 mb-0.5">
+                立即解锁 — ￥19.9
+              </h4>
+              <p className="text-xs text-gray-500">
+                微信/支付宝付款后获取解锁码。一次付费，永久使用。
+              </p>
+            </div>
+            <span className="text-xs px-2.5 py-1 bg-gray-900 text-white rounded-full font-medium">3次可用</span>
+          </div>
           <UnlockCodeInput />
         </div>
 
@@ -279,23 +299,30 @@ function UnlockCodeInput() {
   const [code, setCode] = useState("");
   const [status, setStatus] = useState<"idle" | "success" | "error">("idle");
 
-  const handleUnlock = () => {
-    const validCode = process.env.NEXT_PUBLIC_UNLOCK_CODE || "pm2026";
-    if (code.trim() === validCode) {
+  const handleUnlock = async () => {
+    setStatus("idle");
+    try {
+      const res = await fetch("/api/redeem", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code: code.trim() }),
+      });
+      const data = await res.json();
+      if (!res.ok) { setStatus("error"); return; }
+
+      // Sync to sessionStorage for UI
+      sessionStorage.setItem("unlockCount", String((parseInt(sessionStorage.getItem("unlockCount") || "0", 10)) + (data.resume_credits || 3)));
       sessionStorage.setItem("unlocked", "true");
       setStatus("success");
       setTimeout(() => window.location.reload(), 800);
-    } else {
+    } catch {
       setStatus("error");
     }
   };
 
-  if (sessionStorage.getItem("unlocked") === "true") {
-    return (
-      <p className="text-xs text-emerald-600 font-medium">
-        &#x2713; 已解锁完整版
-      </p>
-    );
+  const count = parseInt(sessionStorage.getItem("unlockCount") || "0", 10);
+  if (count > 0) {
+    return <p className="text-xs text-emerald-600 font-medium">✓ 已解锁专业版（剩余 {count} 次）</p>;
   }
 
   return (

@@ -1,15 +1,9 @@
 "use client";
 
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
-import dynamic from "next/dynamic";
 import type { FinalResume } from "@/lib/types";
-import { TemplateDispatcher, registerClientFonts, getTemplateIds } from "@/components/pdf-templates";
-
-const BlobProvider = dynamic(
-  () => import("@react-pdf/renderer").then((mod) => mod.BlobProvider),
-  { ssr: false }
-);
+import { renderHTML, getTemplateIds, getTemplateName } from "@/lib/pdf-html-renderer";
 
 export default function ResumePreviewPage() {
   const params = useParams();
@@ -17,34 +11,26 @@ export default function ResumePreviewPage() {
   const id = params.id as string;
 
   const [finalResume, setFinalResume] = useState<FinalResume | null>(null);
-  const [deepAnalysis, setDeepAnalysis] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [downloading, setDownloading] = useState(false);
   const [showExportMenu, setShowExportMenu] = useState(false);
   const [exportError, setExportError] = useState<string | null>(null);
-  const pdfBlobRef = useRef<Blob | null>(null);
-  const [templateId, setTemplateId] = useState<string>("tech");
+  const [htmlContent, setHtmlContent] = useState("");
+  const [templateId, setTemplateId] = useState("swiss");
 
   useEffect(() => {
     const stored = sessionStorage.getItem(`${id}_rewrite`);
     if (stored) {
       try {
         const result = JSON.parse(stored);
-        if (result.finalResume) setFinalResume(result.finalResume);
-      } catch {}
-    }
-    // Also try to read deep analysis from original analysis result
-    const analysisStored = sessionStorage.getItem(id);
-    if (analysisStored) {
-      try {
-        const analysis = JSON.parse(analysisStored);
-        if (analysis.deepAnalysis) setDeepAnalysis(analysis.deepAnalysis);
+        if (result.finalResume) {
+          setFinalResume(result.finalResume);
+          setHtmlContent(renderHTML(result.finalResume, templateId));
+        }
       } catch {}
     }
     setLoading(false);
-  }, [id]);
-
-  useEffect(() => { registerClientFonts(); }, []);
+  }, [id, templateId]);
 
   // Close export menu on outside click
   useEffect(() => {
@@ -61,43 +47,37 @@ export default function ResumePreviewPage() {
     setDownloading(true);
     setExportError(null);
     try {
-      if (format === "pdf" && pdfBlobRef.current) {
-        // Use pre-rendered PDF blob from BlobProvider — instant, no API call
-        const url = URL.createObjectURL(pdfBlobRef.current);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = `resume-${Date.now()}.pdf`;
-        a.click();
+      if (format === "pdf") {
+        const res = await fetch("/api/export-pdf", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ finalResume }),
+        });
+        if (!res.ok) { const err = await res.json().catch(() => ({})); throw new Error(err.error || "导出失败"); }
+        const buf = await res.arrayBuffer();
+        const blob = new Blob([buf], { type: "application/pdf" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a"); a.href = url; a.download = `resume-${Date.now()}.pdf`; a.click();
         setTimeout(() => URL.revokeObjectURL(url), 1000);
       } else {
-        // Word export uses API
-        if (!finalResume) return;
-        const body = deepAnalysis ? { finalResume, deepAnalysis } : { finalResume };
         const res = await fetch("/api/export-word", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(body),
+          body: JSON.stringify({ finalResume }),
         });
-        if (!res.ok) {
-          const errData = await res.json().catch(() => null);
-          throw new Error(errData?.error || "导出失败");
-        }
+        if (!res.ok) { const err = await res.json().catch(() => ({})); throw new Error(err.error || "导出失败"); }
         const buf = await res.arrayBuffer();
         const blob = new Blob([buf], { type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document" });
         const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = `resume-${Date.now()}.docx`;
-        a.click();
+        const a = document.createElement("a"); a.href = url; a.download = `resume-${Date.now()}.docx`; a.click();
         setTimeout(() => URL.revokeObjectURL(url), 1000);
       }
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : "导出失败";
-      setExportError(msg);
+    } catch (err: any) {
+      setExportError(err.message);
     } finally {
       setDownloading(false);
     }
-  }, [finalResume, deepAnalysis]);
+  }, [finalResume]);
 
   if (loading) {
     return (
@@ -140,19 +120,10 @@ export default function ResumePreviewPage() {
           </button>
           <span className="text-xs font-medium text-gray-900">Resume Preview</span>
 
-          {/* Template selector */}
           <div className="flex items-center gap-1 ml-4">
             {getTemplateIds().map((tid) => (
-              <button
-                key={tid}
-                onClick={() => setTemplateId(tid)}
-                className={`text-[11px] px-2 py-1 rounded-md transition-colors ${
-                  templateId === tid
-                    ? "bg-gray-900 text-white"
-                    : "text-gray-500 hover:text-gray-700 hover:bg-gray-100"
-                }`}
-              >
-                {tid === "tech" ? "Tech" : tid === "professional" ? "Professional" : "Creative"}
+              <button key={tid} onClick={() => setTemplateId(tid)} className={`text-[10px] px-2 py-1 rounded-md transition-colors ${templateId===tid?"bg-gray-900 text-white":"text-gray-500 hover:text-gray-700 hover:bg-gray-100"}`}>
+                {getTemplateName(tid)}
               </button>
             ))}
           </div>
@@ -203,19 +174,20 @@ export default function ResumePreviewPage() {
         </div>
       </div>
 
-      {/* Document canvas */}
+      {/* Document canvas — HTML iframe */}
       <div className="py-10 flex justify-center">
-        <BlobProvider
-          document={<TemplateDispatcher templateId={templateId} finalResume={finalResume} deepAnalysis={deepAnalysis} />}
-        >
-          {({ url, blob, loading: pdfLoading, error: pdfError }) => {
-            if (blob) pdfBlobRef.current = blob;
-            if (pdfLoading) return <div className="flex items-center justify-center py-32"><div className="animate-spin w-6 h-6 border-2 border-gray-400 border-t-gray-700 rounded-full" /></div>;
-            if (pdfError) return <div className="flex items-center justify-center py-32"><div className="text-center max-w-md"><p className="text-gray-700 text-sm font-medium mb-2">PDF 预览生成失败</p><p className="text-gray-400 text-xs mb-4 break-all">{String(pdfError)}</p><button onClick={() => router.push(`/rewrite/${id}`)} className="px-4 py-2 bg-gray-900 text-white text-xs rounded-lg hover:bg-gray-800">返回优化结果</button></div></div>;
-            if (url) return <iframe src={url} className="border-0 bg-white shadow-lg" style={{ width: 794, minHeight: 1123 }} title="Resume PDF Preview" />;
-            return null;
-          }}
-        </BlobProvider>
+        {htmlContent ? (
+          <iframe
+            srcDoc={htmlContent}
+            className="border-0 bg-white shadow-lg"
+            style={{ width: 794, minHeight: 1123 }}
+            title="Resume Preview"
+          />
+        ) : (
+          <div className="flex items-center justify-center py-32">
+            <div className="animate-spin w-6 h-6 border-2 border-gray-400 border-t-gray-700 rounded-full" />
+          </div>
+        )}
       </div>
     </div>
   );

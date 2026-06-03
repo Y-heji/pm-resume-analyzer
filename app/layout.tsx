@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import PageTracker from "@/components/page-tracker";
+import AuthButton from "@/components/auth/auth-button";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -29,10 +30,11 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-gray-50 text-gray-900">
-        <header className="bg-white border-b border-gray-200 px-6 py-4 shrink-0">
+        <header className="bg-white border-b border-gray-200 px-6 py-4 shrink-0 flex items-center justify-between">
           <a href="/" className="text-lg font-bold text-blue-600 hover:text-blue-700 transition-colors">
             PM Resume Analyzer
           </a>
+          <AuthButton />
         </header>
         <main className="flex-1"><PageTracker>{children}</PageTracker></main>
         <footer className="text-center text-sm text-gray-400 py-6 shrink-0">

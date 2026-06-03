@@ -94,9 +94,85 @@ export default function ResultPage() {
       </div>
 
       {/* Score */}
-      <div className="bg-white rounded-2xl p-8 mb-8 shadow-sm border border-gray-100">
+      <div className="bg-white rounded-2xl p-8 mb-6 shadow-sm border border-gray-100">
         <ScoreGauge score={result.matchScore} breakdown={result.matchScoreBreakdown} />
       </div>
+
+      {/* Risk Summary Banner — prominent for free users */}
+      <div className="mb-6 p-5 bg-gradient-to-r from-amber-50 to-orange-50 rounded-xl border border-amber-200">
+        <div className="flex items-start gap-4 flex-wrap">
+          <div className="flex-1 min-w-0">
+            <h3 className="text-sm font-bold text-amber-800 mb-2">简历诊断结果</h3>
+            <div className="flex gap-3 flex-wrap text-sm">
+              {result.matchScore < 70 && (
+                <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-red-100 text-red-700 rounded-lg font-medium text-xs">
+                  ⚠ 匹配度偏低（{result.matchScore}分）
+                </span>
+              )}
+              {result.atsRisks.length > 0 && (
+                <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-orange-100 text-orange-700 rounded-lg font-medium text-xs">
+                  📋 {result.atsRisks.length} 个ATS风险
+                </span>
+              )}
+              {result.missingSkills.length > 0 && (
+                <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-amber-100 text-amber-700 rounded-lg font-medium text-xs">
+                  🔍 缺失 {result.missingSkills.length} 项关键技能
+                </span>
+              )}
+            </div>
+            {!deep && (
+              <p className="text-xs text-amber-600 mt-3 leading-relaxed">
+                以上风险可能导致简历被ATS系统自动筛掉。点击下方标签页查看详情。
+              </p>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Inline ATS Preview — show first 2 risks directly */}
+      {!deep && result.atsRisks.length > 0 && (
+        <div className="mb-4">
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="text-sm font-semibold text-gray-700">ATS 风险预览</h3>
+            <span className="text-xs text-gray-400">{result.atsRisks.length} 项风险</span>
+          </div>
+          <div className="space-y-2">
+            {result.atsRisks.slice(0, 2).map((risk: any, i: number) => (
+              <div key={i} className="bg-white rounded-lg border border-red-100 p-3">
+                <div className="flex items-start gap-2">
+                  <span className={`mt-0.5 w-2 h-2 rounded-full shrink-0 ${risk.severity === 'high' ? 'bg-red-500' : risk.severity === 'medium' ? 'bg-orange-400' : 'bg-yellow-400'}`} />
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-gray-800">{risk.category}</p>
+                    <p className="text-xs text-gray-500 mt-0.5 line-clamp-2">{risk.description}</p>
+                  </div>
+                </div>
+              </div>
+            ))}
+            {result.atsRisks.length > 2 && (
+              <p className="text-xs text-gray-400 text-center">还有 {result.atsRisks.length - 2} 项风险，点击下方"ATS 风险"标签查看全部</p>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Missing Skills Preview */}
+      {!deep && result.missingSkills.length > 0 && (
+        <div className="mb-4 p-4 bg-white rounded-xl border border-amber-100">
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="text-sm font-semibold text-gray-700">关键技能缺口</h3>
+            <span className="text-xs text-gray-400">{result.missingSkills.length} 项</span>
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            {result.missingSkills.slice(0, 5).map((ms: any, i: number) => (
+              <span key={i} className="text-xs px-2 py-1 bg-amber-50 text-amber-700 rounded-md border border-amber-200">
+                {ms.skill}
+                {ms.importance === 'required' && <span className="text-red-400 ml-0.5">*必需</span>}
+              </span>
+            ))}
+          </div>
+          <p className="text-xs text-amber-600 mt-2">缺失这些技能会让ATS匹配分降低，建议重点补充</p>
+        </div>
+      )}
 
       {/* Tabs */}
       <div className="flex gap-1 mb-6 border-b border-gray-200 flex-wrap">
