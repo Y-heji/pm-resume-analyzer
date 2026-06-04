@@ -48,17 +48,25 @@ export default function ResumePreviewPage() {
     setExportError(null);
     try {
       if (format === "pdf") {
-        const res = await fetch("/api/export-pdf", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ finalResume, templateId }),
-        });
-        if (!res.ok) { const err = await res.json().catch(() => ({})); throw new Error(err.error || "PDF导出失败"); }
-        const buf = await res.arrayBuffer();
-        const blob = new Blob([buf], { type: "application/pdf" });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a"); a.href = url; a.download = `resume-${Date.now()}.pdf`; a.click();
-        setTimeout(() => URL.revokeObjectURL(url), 1000);
+        // Client-side PDF using html2canvas + jspdf (no server dependency)
+        const iframe = document.querySelector("iframe");
+        if (!iframe?.contentDocument?.body) throw new Error("预览未加载完成");
+        const { default: html2canvas } = await import("html2canvas");
+        const { default: jsPDF } = await import("jspdf");
+        const canvas = await html2canvas(iframe.contentDocument.body, { scale: 2, useCORS: true });
+        const imgData = canvas.toDataURL("image/png");
+        const pdf = new jsPDF({ format: "a4", unit: "pt" });
+        const pageW = pdf.internal.pageSize.getWidth();
+        const pageH = pdf.internal.pageSize.getHeight();
+        const imgW = pageW;
+        const imgH = (canvas.height * imgW) / canvas.width;
+        let h = 0;
+        while (h < imgH) {
+          pdf.addImage(imgData, "PNG", 0, -h, imgW, imgH);
+          h += pageH;
+          if (h < imgH) pdf.addPage();
+        }
+        pdf.save(`resume-${Date.now()}.pdf`);
       } else {
         const res = await fetch("/api/export-word", {
           method: "POST",

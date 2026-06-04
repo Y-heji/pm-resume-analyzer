@@ -1,19 +1,32 @@
 import { NextResponse } from "next/server";
 import puppeteer from "puppeteer-core";
-import chromium from "@sparticuz/chromium";
 import { renderHTML } from "@/lib/pdf-html-renderer";
+
+let _browserPromise: Promise<any> | null = null;
 
 async function getBrowser() {
   if (process.env.VERCEL) {
-    const exePath = await chromium.executablePath();
+    const chromium = (await import("@sparticuz/chromium")).default;
+    let exePath: string;
+    try {
+      exePath = await chromium.executablePath();
+    } catch {
+      // Fallback: try common Vercel paths
+      const fs = await import("fs");
+      const candidates = [
+        "/tmp/chromium",
+        "/var/task/node_modules/@sparticuz/chromium/bin/chromium",
+        "/var/task/node_modules/@sparticuz/chromium-min/bin/chromium",
+      ];
+      exePath = candidates.find(p => fs.existsSync(p)) || candidates[0];
+    }
     console.log("[pdf] chromium path:", exePath);
     return puppeteer.launch({
-      args: [...chromium.args, "--no-sandbox"],
+      args: chromium.args,
       executablePath: exePath,
-      headless: true,
+      headless: chromium.headless,
     });
   }
-  // Local dev: use system Edge
   return puppeteer.launch({
     executablePath: "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe",
     headless: true,
