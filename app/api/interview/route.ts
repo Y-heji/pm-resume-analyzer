@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { startInterview, submitAnswer, endInterview, loadSession, saveInterviewHistory, getInterviewHistory, type InterviewSession } from "@/lib/interview";
+import { startInterview, submitAnswer, endInterview, loadSession, saveSession, saveInterviewHistory, getInterviewHistory, type InterviewSession } from "@/lib/interview";
 import { getCurrentUser, verifyToken } from "@/lib/auth";
 import { getEntitlements, consumeMockInterview } from "@/lib/credits";
 import { SignJWT } from "jose";
@@ -75,7 +75,7 @@ export async function POST(req: Request) {
       }
 
       const { session, firstQuestion } = await startInterview(resumeText, jdText, tier);
-      if (tier === "free") freeSessions.set(session.id, session);
+      if (tier === "free") { freeSessions.set(session.id, session); saveSession(session); }
 
       if (res) {
         // Re-create response with actual body
@@ -114,7 +114,7 @@ export async function POST(req: Request) {
       }
 
       const result = await submitAnswer(session, answer);
-      if (session.tier === "free") freeSessions.set(sessionId, result.session);
+      if (session.tier === "free") { freeSessions.set(sessionId, result.session); saveSession(result.session); }
 
       return NextResponse.json({
         action: result.action,

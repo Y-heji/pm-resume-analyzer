@@ -40,16 +40,31 @@ export interface InterviewSession {
   createdAt: string;
 }
 
-// ─── In-memory Storage ──────────────────────────
+// ─── Storage (in-memory cache + Redis persistence) ──
 
 const sessionStore = new Map<string, InterviewSession>();
 
-export function saveSession(session: InterviewSession) {
+function sessionKey(id: string) { return `interview_session:${id}`; }
+
+export async function saveSession(session: InterviewSession) {
   sessionStore.set(session.id, session);
+  // Persist to Redis: 2h TTL (covers longest realistic interview)
+  await redis.set(sessionKey(session.id), session, { ex: 7200 }).catch(() => {});
 }
 
-export function loadSession(id: string): InterviewSession | null {
-  return sessionStore.get(id) || null;
+export async function loadSession(id: string): Promise<InterviewSession | null> {
+  // Check memory first
+  const cached = sessionStore.get(id);
+  if (cached) return cached;
+  // Fallback to Redis (survives cold starts)
+  try {
+    const data = await redis.get<InterviewSession>(sessionKey(id));
+    if (data) {
+      sessionStore.set(id, data); // repopulate cache
+      return data;
+    }
+  } catch {}
+  return null;
 }
 
 // ─── History (Redis persistence for completed interviews) ──
@@ -227,13 +242,14 @@ async function answerFree(
 
   // After answering main question → generate 1 follow-up
   if (followUpCount === 0) {
+    const truncatedAnswer = answer.length > 1500 ? answer.slice(0, 1500) + "..." : answer;
     const response = await getClient().chat.completions.create({
       model: "deepseek-chat",
       messages: [
         { role: "system", content: "你是专业HR面试官。基于候选人的回答，追问1个具体细节（数据/逻辑/做法），深挖真实能力。追问要简短有力，不超过30字。用JSON回复。" },
         {
           role: "user",
-          content: `简历：${session.resumeText.slice(0, 500)}\n岗位：${session.jdText}\n当前问题：${lastQ?.question}\n候选人回答：${answer}\n\n请给出10字以内简短肯定，然后追问1个具体问题。\n返回JSON：{"feedback":"简短反馈","question":"追问问题"}`,
+          content: `简历：${session.resumeText.slice(0, 500)}\n岗位：${session.jdText}\n当前问题：${lastQ?.question}\n候选人回答：${truncatedAnswer}\n\n请给出10字以内简短肯定，然后追问1个具体问题。\n返回JSON：{"feedback":"简短反馈","question":"追问问题"}`,
         },
       ],
       temperature: 0.5,
@@ -241,7 +257,8 @@ async function answerFree(
     });
 
     const text = response.choices[0]?.message?.content || "";
-    const parsed = JSON.parse(extractJson(text));
+    let parsed: any;
+    try { parsed = JSON.parse(extractJson(text)); } catch { parsed = { feedback: "好的", question: "请详细说说你的具体做法？" }; }
     if (lastQ) lastQ.followUps.push({ question: parsed.question, answer: "" });
 
     return { action: "nextQuestion", question: parsed.question, feedback: parsed.feedback, session };
@@ -257,13 +274,16 @@ async function answerFree(
   }
 
   // Generate next main question
+  const historySummary = session.questions.map(q =>
+    `"${q.question}" → ${(q.answer || "").slice(0, 200)}`
+  ).join(" | ").slice(0, 2000);
   const response = await getClient().chat.completions.create({
     model: "deepseek-chat",
     messages: [
-      { role: "system", content: "你是资深HR面试官。自然过渡到下一题，问题要结合简历具体经历，不同维度。用JSON回复。" },
+      { role: "system", content: "你是资深HR面试官。自然过渡到下一题，问题要结合简历具体经历，不同维度。用JSON回复。如果无法解析，输出：{\"feedback\":\"请继续\",\"question\":\"请继续\"}" },
       {
         role: "user",
-        content: `简历：${session.resumeText.slice(0, 500)}\n岗位：${session.jdText}\n进度：${step}/${session.plan.questionCount}\n已回答：${session.questions.map(q => `"${q.question}" → ${q.answer}`).join(" | ")}\n\n请给一句简短反馈+第${step}题(30-50字，结合简历经历，不同维度)。\n返回JSON：{"feedback":"简短反馈","question":"新题"}`,
+        content: `简历：${session.resumeText.slice(0, 500)}\n岗位：${session.jdText}\n进度：${step}/${session.plan.questionCount}\n已回答：${historySummary}\n\n请给一句简短反馈+第${step}题(30-50字，结合简历经历，不同维度)。\n返回JSON：{"feedback":"简短反馈","question":"新题"}`,
       },
     ],
     temperature: 0.5,
@@ -271,7 +291,8 @@ async function answerFree(
   });
 
   const text2 = response.choices[0]?.message?.content || "";
-  const parsed2 = JSON.parse(extractJson(text2));
+  let parsed2: any;
+  try { parsed2 = JSON.parse(extractJson(text2)); } catch { parsed2 = { feedback: "请继续", question: "请分享一个相关的项目经历？" }; }
 
   session.questions.push({
     id: step,
@@ -290,9 +311,10 @@ async function answerPaid(
   answer: string
 ): Promise<{ action: "nextQuestion" | "end"; question?: string; feedback?: string; session: InterviewSession }> {
   const history = session.questions.map(q => {
-    const fups = q.followUps.map((f, fi) => `  追问${fi + 1}: ${f.question}\n  回答${fi + 1}: ${f.answer || "(未回答)"}`).join("\n");
-    return `Q${q.id}[${q.type}]: ${q.question}\nA${q.id}: ${q.answer || "(未回答)"}${fups ? "\n" + fups : ""}`;
+    const fups = q.followUps.map((f, fi) => `  追问${fi + 1}: ${f.question}\n  回答${fi + 1}: ${(f.answer || "(未回答)").slice(0, 300)}`).join("\n");
+    return `Q${q.id}[${q.type}]: ${q.question}\nA${q.id}: ${(q.answer || "(未回答)").slice(0, 300)}${fups ? "\n" + fups : ""}`;
   });
+  const truncatedHistory = history.join("\n\n").slice(-3000); // keep recent context
 
   const lastQ = session.questions[session.questions.length - 1];
   const lastFollowUp = lastQ?.followUps[lastQ.followUps.length - 1];
@@ -308,7 +330,7 @@ async function answerPaid(
       },
       {
         role: "user",
-        content: `进度：第${session.currentStep}/${session.plan.questionCount}题 | 当前题追问${followUpCount}/2次\n\n对话历史：\n${history.join("\n\n")}\n\n用户最新回答("${currentQ}")：${answer}\n\n判断：\n- 回答不够深入且追问<2次 → action:followUp 追问具体细节\n- 回答充分 → action:nextQuestion 出新题(${session.currentStep < 3 ? "HR方向" : "岗位专业方向"})\n- 已回答${session.plan.questionCount}题 → action:end\n\n返回JSON：{"action":"followUp|nextQuestion|end","question":"追问/新题内容","feedback":"过渡语(可为空)"}`,
+        content: `进度：第${session.currentStep}/${session.plan.questionCount}题 | 当前题追问${followUpCount}/2次\n\n对话历史：\n${truncatedHistory}\n\n用户最新回答("${currentQ}")：${answer.slice(0, 2000)}\n\n判断：\n- 回答不够深入且追问<2次 → action:followUp 追问具体细节\n- 回答充分 → action:nextQuestion 出新题(${session.currentStep < 3 ? "HR方向" : "岗位专业方向"})\n- 已回答${session.plan.questionCount}题 → action:end\n\n返回JSON：{"action":"followUp|nextQuestion|end","question":"追问/新题内容","feedback":"过渡语(可为空)"}`,
       },
     ],
     temperature: 0.7,
@@ -316,7 +338,8 @@ async function answerPaid(
   });
 
   const text = response.choices[0]?.message?.content || "";
-  const parsed = JSON.parse(extractJson(text));
+  let parsed: any;
+  try { parsed = JSON.parse(extractJson(text)); } catch { parsed = { action: "nextQuestion", question: "请分享一个相关的工作经历？", feedback: "" }; }
 
   if (parsed.action === "followUp") {
     if (lastFollowUp) {
@@ -375,8 +398,8 @@ export async function endInterview(session: InterviewSession): Promise<{
     id: q.id,
     type: q.type,
     question: q.question,
-    answer: q.answer || "(未回答)",
-    followUps: q.followUps,
+    answer: (q.answer || "(未回答)").slice(0, 1000),
+    followUps: q.followUps.map(f => ({ question: f.question, answer: (f.answer || "(未回答)").slice(0, 500) })),
   }));
 
   const SCORING_RUBRIC = `
@@ -438,7 +461,8 @@ total = (专业能力 × 0.3 + 表达能力 × 0.2 + 逻辑能力 × 0.2 + 结�
   });
 
   const text = response.choices[0]?.message?.content || "";
-  const report = JSON.parse(extractJson(text));
+  let report: any;
+  try { report = JSON.parse(extractJson(text)); } catch { report = { totalScore: 0, strengths: [], weaknesses: [], suggestions: ["请重试生成报告"] }; }
 
   if (session.tier === "paid") {
     session.status = "completed";
