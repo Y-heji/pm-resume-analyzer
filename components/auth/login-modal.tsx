@@ -19,8 +19,7 @@ export default function LoginModal({ onClose }: Props) {
     setSending(true); setError("");
     try {
       const res = await fetch("/api/auth/send-code", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+        method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: email.trim() }),
       });
       const data = await res.json();
@@ -38,8 +37,7 @@ export default function LoginModal({ onClose }: Props) {
     setError("");
     try {
       const res = await fetch("/api/auth/verify", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+        method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: email.trim(), code: code.trim(), codeToken }),
       });
       const data = await res.json();
@@ -56,8 +54,8 @@ export default function LoginModal({ onClose }: Props) {
         <h3 className="text-lg font-bold mb-4">登录</h3>
         {step === "email" ? (
           <>
-            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)}
-              placeholder="输入邮箱" className="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-gray-900"
+            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="输入邮箱"
+              className="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-gray-900"
               onKeyDown={(e) => e.key === "Enter" && sendCode()} />
             <button onClick={sendCode} disabled={sending}
               className="w-full py-2.5 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 disabled:opacity-40">
@@ -67,8 +65,8 @@ export default function LoginModal({ onClose }: Props) {
         ) : (
           <>
             <p className="text-xs text-gray-500 mb-1">验证码已发送到 {email}</p>
-            <input type="text" value={code} onChange={(e) => setCode(e.target.value)}
-              placeholder="输入6位验证码" maxLength={6} className="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-gray-900"
+            <input type="text" value={code} onChange={(e) => setCode(e.target.value)} placeholder="输入6位验证码" maxLength={6}
+              className="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-gray-900"
               onKeyDown={(e) => e.key === "Enter" && verifyCode()} />
             <button onClick={verifyCode}
               className="w-full py-2.5 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800">

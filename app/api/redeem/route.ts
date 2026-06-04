@@ -1,8 +1,10 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { redeemCode } from "@/lib/credits";
+import { checkCsrf, csrfError } from "@/lib/admin-auth";
 
 export async function POST(req: Request) {
+  if (!checkCsrf(req)) return csrfError();
   try {
     const { code } = await req.json();
     if (!code) return NextResponse.json({ error: "请输入兑换码" }, { status: 400 });

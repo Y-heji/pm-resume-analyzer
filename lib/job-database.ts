@@ -522,6 +522,151 @@ export const jobDatabase: JobEntry[] = [
 
 export const industries = [...new Set(jobDatabase.map(j => j.industry))];
 
+// ─── Category Tree （行业分类树） ──────────────────────
+
+export interface CategoryNode {
+  label: string;
+  value: string;
+  children?: CategoryNode[];
+}
+
+export const categoryTree: CategoryNode[] = [
+  {
+    label: "互联网/IT", value: "互联网",
+    children: [
+      { label: "产品经理", value: "互联网-产品" },
+      { label: "前端/客户端", value: "互联网-前端/客户端" },
+      { label: "后端/架构", value: "互联网-后端/架构" },
+      { label: "AI/算法", value: "互联网-AI/算法" },
+      { label: "数据", value: "互联网-数据" },
+      { label: "设计", value: "互联网-设计" },
+      { label: "测试/运维", value: "互联网-测试/运维" },
+      { label: "安全", value: "互联网-安全" },
+      { label: "管理", value: "互联网-管理" },
+    ],
+  },
+  {
+    label: "金融/投资", value: "金融",
+    children: [
+      { label: "银行/信贷", value: "金融-银行/信贷" },
+      { label: "证券/投资", value: "金融-证券/投资" },
+      { label: "保险", value: "金融-保险" },
+      { label: "金融科技", value: "金融-金融科技" },
+    ],
+  },
+  {
+    label: "制造/工程", value: "制造",
+    children: [
+      { label: "汽车/新能源", value: "制造-汽车/新能源" },
+      { label: "机械/重工", value: "制造-机械/重工" },
+      { label: "电子/半导体", value: "制造-电子/半导体" },
+      { label: "化工/材料", value: "制造-化工/材料" },
+    ],
+  },
+  {
+    label: "医疗/健康", value: "医疗",
+    children: [
+      { label: "临床/护理", value: "医疗-临床/护理" },
+      { label: "药学/研发", value: "医疗-药学/研发" },
+      { label: "健康管理", value: "医疗-健康管理" },
+      { label: "器械/设备", value: "医疗-器械/设备" },
+    ],
+  },
+  {
+    label: "教育/培训", value: "教育",
+    children: [
+      { label: "学校/K12", value: "教育-学校/K12" },
+      { label: "培训/职教", value: "教育-培训/职教" },
+      { label: "在线教育", value: "教育-在线教育" },
+    ],
+  },
+  {
+    label: "电商/零售", value: "电商",
+    children: [
+      { label: "平台运营", value: "电商-平台运营" },
+      { label: "直播/内容", value: "电商-直播/内容" },
+      { label: "跨境/外贸", value: "电商-跨境/外贸" },
+    ],
+  },
+  {
+    label: "媒体/广告", value: "媒体",
+    children: [
+      { label: "广告/品牌", value: "媒体-广告/品牌" },
+      { label: "内容/制作", value: "媒体-内容/制作" },
+    ],
+  },
+  {
+    label: "物流/运输", value: "物流",
+    children: [
+      { label: "运输/配送", value: "物流-运输/配送" },
+      { label: "供应链/仓储", value: "物流-供应链/仓储" },
+      { label: "供应链/采购", value: "物流-供应链/采购" },
+    ],
+  },
+  {
+    label: "建筑/房地产", value: "建筑",
+    children: [
+      { label: "房地产/物业", value: "房地产/物业" },
+      { label: "建筑工程", value: "建筑/工程" },
+    ],
+  },
+  {
+    label: "企业服务", value: "企业服务",
+    children: [
+      { label: "行政/客服", value: "企业服务-行政/客服" },
+      { label: "人事", value: "企业服务-人事" },
+      { label: "财务/审计", value: "企业服务-财务/审计" },
+      { label: "销售/商务", value: "企业服务-销售/商务" },
+      { label: "法务/合规", value: "企业服务-法务/合规" },
+      { label: "咨询", value: "企业服务-咨询" },
+      { label: "管培/实习", value: "企业服务-管培/实习" },
+    ],
+  },
+  {
+    label: "餐饮/酒店/旅游", value: "餐饮/旅游/酒店",
+    children: [],
+  },
+  {
+    label: "家政/生活服务", value: "家政/生活服务",
+    children: [],
+  },
+  {
+    label: "政府/公共服务", value: "政府/公共服务",
+    children: [],
+  },
+  {
+    label: "游戏/电竞", value: "游戏/电竞",
+    children: [],
+  },
+  {
+    label: "能源/环保", value: "能源/环保",
+    children: [],
+  },
+  {
+    label: "通信/运营商", value: "通信/运营商",
+    children: [],
+  },
+  {
+    label: "宠物/农业", value: "宠物/农业",
+    children: [],
+  },
+  {
+    label: "化工/生物医药", value: "化工/生物医药",
+    children: [],
+  },
+  {
+    label: "新兴/灵活就业", value: "新兴/灵活就业",
+    children: [],
+  },
+];
+
+// Flatten tree back to industry list for search/filter
+export const treeIndustries = categoryTree.flatMap(c =>
+  c.children && c.children.length > 0
+    ? c.children.map(ch => ch.value)
+    : [c.value]
+);
+
 export function searchJobs(keyword: string, industry?: string) {
   const kw = keyword.toLowerCase().trim();
   if (!kw && !industry) return jobDatabase;

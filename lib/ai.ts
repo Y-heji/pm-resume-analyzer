@@ -1,15 +1,12 @@
 import OpenAI from "openai";
 import type { AnalysisResult } from "./types";
+import { extractJson } from "./json-utils";
+import { getAIClient } from "./ai-config";
 
 let _client: OpenAI | null = null;
 
 function getClient() {
-  if (!_client) {
-    _client = new OpenAI({
-      baseURL: "https://api.deepseek.com/v1",
-      apiKey: process.env.DEEPSEEK_API_KEY,
-    });
-  }
+  if (!_client) _client = getAIClient();
   return _client;
 }
 
@@ -93,22 +90,6 @@ ${jdText}
     "personalizedAdvice": "针对这个岗位的个性化提升建议"
   }` : ""}
 }`;
-}
-
-function extractJson(text: string): string {
-  const codeBlockMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/);
-  let json = codeBlockMatch ? codeBlockMatch[1].trim() : "";
-  if (!json) {
-    const firstBrace = text.indexOf("{");
-    const lastBrace = text.lastIndexOf("}");
-    if (firstBrace === -1 || lastBrace === -1) throw new Error("No JSON found in response");
-    json = text.slice(firstBrace, lastBrace + 1);
-  }
-  return json.replace(/("(?:[^"\\]|\\.)*")/g, (match) => {
-    return match.replace(/[\x00-\x1f\x7f]/g, (ch) => {
-      return "\\u" + ("0000" + ch.charCodeAt(0).toString(16)).slice(-4);
-    });
-  });
 }
 
 export async function analyzeResume(

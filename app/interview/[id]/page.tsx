@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 
 interface Message {
   role: "ai" | "user";
@@ -11,6 +11,8 @@ interface Message {
 export default function InterviewPage() {
   const params = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const forceDeep = searchParams.get("deep") === "1";
   const id = params.id as string;
 
   const [phase, setPhase] = useState<"loading" | "active" | "report" | "error">("loading");
@@ -23,17 +25,22 @@ export default function InterviewPage() {
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [isDeep, setIsDeep] = useState(false);
-  const [guestTrial, setGuestTrial] = useState(false);
   const [entitlementsChecked, setEntitlementsChecked] = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
 
-  // Check entitlements + guest trial FIRST, then start interview
+  // Check entitlements + guest trial for deep interview access
   useEffect(() => {
-    // Guest trial from sessionStorage (sync, no delay)
+    // Guest trial from sessionStorage (UI indicator only, server enforces via cookie)
     const guestCount = parseInt(sessionStorage.getItem("guest_paid_interviews") || "0", 10);
     if (guestCount > 0) {
       setIsDeep(true);
-      setGuestTrial(true);
+      setEntitlementsChecked(true);
+      return;
+    }
+
+    // forceDeep from URL ?deep=1
+    if (forceDeep) {
+      setIsDeep(true);
       setEntitlementsChecked(true);
       return;
     }
@@ -44,6 +51,9 @@ export default function InterviewPage() {
       .then((d) => {
         if (d.email && d.mock_interview_left > 0) {
           setIsDeep(true);
+        } else if (d.email && d.is_premium) {
+          // Premium with 0 credits left can still do free interview
+          setIsDeep(false);
         }
       })
       .catch(() => {})
@@ -69,18 +79,11 @@ export default function InterviewPage() {
     fetch("/api/interview", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "start", resumeText, jdText, deep: isDeep, guest: guestTrial }),
+      body: JSON.stringify({ action: "start", resumeText, jdText, deep: isDeep }),
     })
       .then(r => r.json())
       .then(data => {
         if (data.error) throw new Error(data.error);
-        // Consume guest trial if using guest access
-        if (isDeep) {
-          const guestCount = parseInt(sessionStorage.getItem("guest_paid_interviews") || "0", 10);
-          if (guestCount > 0) {
-            sessionStorage.setItem("guest_paid_interviews", String(guestCount - 1));
-          }
-        }
         setSessionId(data.sessionId);
         setTotal(data.total);
         setStep(1);
@@ -91,7 +94,7 @@ export default function InterviewPage() {
         setError(err.message);
         setPhase("error");
       });
-  }, [id, isDeep]);
+  }, [id, isDeep, entitlementsChecked]);
 
   const handleSubmit = async () => {
     if (!input.trim() || !sessionId || submitting) return;

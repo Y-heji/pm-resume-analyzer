@@ -22,6 +22,59 @@ export default function AdminPage() {
   const [analytics, setAnalytics] = useState<AnalyticsSummary | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [tab, setTab] = useState<"waitlist" | "codes">("waitlist");
+
+  // ── Code management state ──
+  const [paidCodes, setPaidCodes] = useState<any[]>([]);
+  const [guestCodes, setGuestCodes] = useState<any[]>([]);
+  const [genCount, setGenCount] = useState(1);
+  const [genResume, setGenResume] = useState(3);
+  const [genInterview, setGenInterview] = useState(3);
+  const [genPrefix, setGenPrefix] = useState("PM");
+  const [guestGenCount, setGuestGenCount] = useState(5);
+  const [guestGenResume, setGuestGenResume] = useState(1);
+  const [guestGenInt, setGuestGenInt] = useState(1);
+  const [guestGenPrefix, setGuestGenPrefix] = useState("TRY");
+  const [generated, setGenerated] = useState<string[]>([]);
+  const [genLoading, setGenLoading] = useState(false);
+
+  const codeHeaders = { "Content-Type": "application/json", "x-admin-key": key };
+
+  async function loadCodes() {
+    const [pRes, gRes] = await Promise.all([
+      fetch("/api/admin/codes/list", { headers: codeHeaders }),
+      fetch("/api/admin/codes/list-guest", { headers: codeHeaders }),
+    ]);
+    if (pRes.ok) { const d = await pRes.json(); setPaidCodes(d.codes || []); }
+    if (gRes.ok) { const d = await gRes.json(); setGuestCodes(d.codes || []); }
+  }
+
+  async function genPaid() {
+    setGenLoading(true);
+    const res = await fetch("/api/admin/codes/generate", {
+      method: "POST", headers: codeHeaders,
+      body: JSON.stringify({ count: genCount, resumeOptimize: genResume, mockInterview: genInterview, prefix: genPrefix }),
+    });
+    if (res.ok) { const d = await res.json(); setGenerated(d.codes || []); loadCodes(); }
+    setGenLoading(false);
+  }
+
+  async function deleteCodes(codes: string[]) {
+    await fetch("/api/admin/codes/delete", {
+      method: "POST", headers: codeHeaders,
+      body: JSON.stringify({ codes }),
+    });
+    loadCodes();
+  }
+  async function genGuest() {
+    setGenLoading(true);
+    const res = await fetch("/api/admin/codes/generate-guest", {
+      method: "POST", headers: codeHeaders,
+      body: JSON.stringify({ count: guestGenCount, resumeOptimize: guestGenResume, paidInterviews: guestGenInt, prefix: guestGenPrefix }),
+    });
+    if (res.ok) { const d = await res.json(); setGenerated(d.codes || []); loadCodes(); }
+    setGenLoading(false);
+  }
 
   const fetchEntries = useCallback(async (authKey: string) => {
     setLoading(true);
@@ -105,7 +158,11 @@ export default function AdminPage() {
   return (
     <div className="max-w-4xl mx-auto px-6 py-10">
       <div className="flex items-center justify-between mb-8">
-        <h1 className="text-xl font-bold">预约列表</h1>
+        <h1 className="text-xl font-bold">管理后台</h1>
+        <div className="flex gap-1 bg-gray-100 rounded-lg p-0.5">
+          <button onClick={() => { setTab("waitlist"); }} className={`px-3 py-1 text-xs rounded-md ${tab==="waitlist"?"bg-white shadow text-gray-900":"text-gray-500"}`}>预约列表</button>
+          <button onClick={() => { setTab("codes"); loadCodes(); }} className={`px-3 py-1 text-xs rounded-md ${tab==="codes"?"bg-white shadow text-gray-900":"text-gray-500"}`}>兑换码</button>
+        </div>
         <button
           onClick={() => fetchEntries(key)}
           className="px-4 py-2 bg-gray-100 text-gray-700 text-sm rounded-lg hover:bg-gray-200 transition-colors"
@@ -113,6 +170,8 @@ export default function AdminPage() {
           {loading ? "刷新中..." : "刷新"}
         </button>
       </div>
+
+      {tab === "waitlist" ? (<>
 
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8">
@@ -275,6 +334,69 @@ export default function AdminPage() {
             </div>
           </div>
         </div>
+      )}
+      </> ) : (
+      /* ═══ Codes Tab ═══ */
+      <>
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-sm font-bold">兑换码管理</h2>
+          <button onClick={loadCodes} className="text-xs px-3 py-1.5 bg-gray-100 rounded-lg hover:bg-gray-200">🔄 刷新</button>
+        </div>
+        {/* Generate Paid */}
+        <div className="bg-white rounded-2xl border border-gray-200 p-6 mb-6">
+          <h2 className="text-sm font-bold mb-4">生成付费码</h2>
+          <div className="grid grid-cols-5 gap-3 mb-4">
+            <div><label className="text-[10px] text-gray-500">数量</label><input type="number" value={genCount} onChange={e => setGenCount(+e.target.value)} className="w-full px-2 py-1.5 border rounded-lg text-xs" /></div>
+            <div><label className="text-[10px] text-gray-500">优化次数</label><input type="number" value={genResume} onChange={e => setGenResume(+e.target.value)} className="w-full px-2 py-1.5 border rounded-lg text-xs" /></div>
+            <div><label className="text-[10px] text-gray-500">面试次数</label><input type="number" value={genInterview} onChange={e => setGenInterview(+e.target.value)} className="w-full px-2 py-1.5 border rounded-lg text-xs" /></div>
+            <div><label className="text-[10px] text-gray-500">前缀</label><input value={genPrefix} onChange={e => setGenPrefix(e.target.value)} className="w-full px-2 py-1.5 border rounded-lg text-xs" /></div>
+            <div className="flex items-end"><button onClick={genPaid} disabled={genLoading} className="w-full py-1.5 bg-amber-500 text-white text-xs rounded-lg">生成</button></div>
+          </div>
+          {generated.length > 0 && <div className="p-3 bg-gray-50 rounded-lg"><p className="text-[10px] text-gray-500 mb-1">生成结果（点击复制）：</p>{generated.map((c,i) => <button key={i} onClick={()=>navigator.clipboard.writeText(c)} className="text-xs bg-white px-1.5 py-0.5 rounded mr-1 mb-1 hover:bg-blue-50 hover:text-blue-600" title="点击复制">{c} 📋</button>)}</div>}
+        </div>
+
+        {/* Generate Guest */}
+        <div className="bg-white rounded-2xl border border-gray-200 p-6 mb-6">
+          <h2 className="text-sm font-bold mb-4">生成体验码</h2>
+          <div className="grid grid-cols-5 gap-3 mb-4">
+            <div><label className="text-[10px] text-gray-500">数量</label><input type="number" value={guestGenCount} onChange={e => setGuestGenCount(+e.target.value)} className="w-full px-2 py-1.5 border rounded-lg text-xs" /></div>
+            <div><label className="text-[10px] text-gray-500">优化次数</label><input type="number" value={guestGenResume} onChange={e => setGuestGenResume(+e.target.value)} className="w-full px-2 py-1.5 border rounded-lg text-xs" /></div>
+            <div><label className="text-[10px] text-gray-500">面试次数</label><input type="number" value={guestGenInt} onChange={e => setGuestGenInt(+e.target.value)} className="w-full px-2 py-1.5 border rounded-lg text-xs" /></div>
+            <div><label className="text-[10px] text-gray-500">前缀</label><input value={guestGenPrefix} onChange={e => setGuestGenPrefix(e.target.value)} className="w-full px-2 py-1.5 border rounded-lg text-xs" /></div>
+            <div className="flex items-end"><button onClick={genGuest} disabled={genLoading} className="w-full py-1.5 bg-blue-500 text-white text-xs rounded-lg">生成</button></div>
+          </div>
+        </div>
+
+        {/* Inventory */}
+        <div className="grid grid-cols-2 gap-6">
+          <div>
+            <h2 className="text-sm font-bold mb-3">付费码  <span className="text-xs text-gray-400">({paidCodes.filter(c=>!c.used).length}可用/{paidCodes.length})</span></h2>
+            <div className="space-y-1 max-h-80 overflow-y-auto">
+              {paidCodes.map((c,i) => (
+                <div key={i} className={`flex justify-between p-2 rounded-lg text-xs ${c.used?'bg-gray-50 text-gray-400':'bg-amber-50'}`}>
+                  <button onClick={()=>navigator.clipboard.writeText(c.code)} className="font-mono hover:text-blue-600" title="点击复制">{c.code}</button>
+                  <span className="flex items-center gap-2">
+                    <span>{c.used?(c.used_by?'已用:'+c.used_by:'已用'):(c.resume_optimize||0)+'优/'+(c.mock_interview||0)+'面'}</span>
+                    <button onClick={(e)=>{e.stopPropagation();deleteCodes([c.code]);}} className="text-gray-400 hover:text-red-500 text-xs" title="删除">✕</button>
+                  </span>
+                </div>))}
+            </div>
+          </div>
+          <div>
+            <h2 className="text-sm font-bold mb-3">体验码  <span className="text-xs text-gray-400">({guestCodes.filter(c=>!c.used).length}可用/{guestCodes.length})</span></h2>
+            <div className="space-y-1 max-h-80 overflow-y-auto">
+              {guestCodes.map((c,i) => (
+                <div key={i} className={`flex justify-between p-2 rounded-lg text-xs ${c.used?'bg-gray-50 text-gray-400':'bg-blue-50'}`}>
+                  <button onClick={()=>navigator.clipboard.writeText(c.code)} className="font-mono hover:text-blue-600" title="点击复制">{c.code}</button>
+                  <span className="flex items-center gap-2">
+                    <span>{c.used?'已用':(c.resume_optimize||0)+'优/'+(c.paid_interviews||0)+'面'}</span>
+                    <button onClick={(e)=>{e.stopPropagation();deleteCodes([c.code]);}} className="text-gray-400 hover:text-red-500 text-xs" title="删除">✕</button>
+                  </span>
+                </div>))}
+            </div>
+          </div>
+        </div>
+      </>
       )}
     </div>
   );

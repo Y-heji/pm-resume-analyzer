@@ -2,14 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { track } from "@/lib/analytics";
-
-interface UserInfo {
-  email: string;
-  is_premium: boolean;
-  resume_optimize_left: number;
-  mock_interview_left: number;
-  activated_at: string | null;
-}
+import { useUser } from "@/components/auth/use-user";
 
 const FULL_VERSION_FEATURES = [
   { icon: "&#x1F4DD;", label: "完整项目经历 AI 重写" },
@@ -41,17 +34,7 @@ export default function UnlockCTA({ premiumCount }: Props) {
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [user, setUser] = useState<UserInfo | null>(null);
-
-  // Fetch user entitlements
-  useEffect(() => {
-    fetch("/api/auth/me")
-      .then((r) => r.json())
-      .then((d) => {
-        if (d.email) setUser(d);
-      })
-      .catch(() => {});
-  }, []);
+  const user = useUser();
 
   // Track CTA view
   useEffect(() => {
@@ -114,23 +97,19 @@ export default function UnlockCTA({ premiumCount }: Props) {
       <div className="flex items-center gap-4 mb-8">
         <div className="flex-1 h-px bg-gray-200" />
         <span className="text-xs font-medium text-gray-400 uppercase tracking-wider">
-          {user?.is_premium ? "专业版已激活" : "解锁完整版"}
+          {user?.status === "active" ? "专业版已激活" : user?.status === "expired" ? "专业版已结束" : "解锁完整版"}
         </span>
         <div className="flex-1 h-px bg-gray-200" />
       </div>
 
-      {/* ── Premium Status Card (shown when user is premium) ── */}
-      {user?.is_premium ? (
+      {/* ── Premium Status Card ── */}
+      {user.status === "active" ? (
         <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
           <div className="p-6 md:p-8">
             <div className="flex items-center gap-3 mb-6">
-              <div className="w-12 h-12 rounded-2xl bg-amber-100 flex items-center justify-center text-2xl">
-                👑
-              </div>
+              <div className="w-12 h-12 rounded-2xl bg-amber-100 flex items-center justify-center text-2xl">👑</div>
               <div>
-                <h3 className="text-lg font-bold text-gray-900">
-                  专业版已激活
-                </h3>
+                <h3 className="text-lg font-bold text-gray-900">专业版已激活</h3>
                 <p className="text-xs text-gray-500">
                   {user.activated_at
                     ? `激活于 ${new Date(user.activated_at).toLocaleDateString("zh-CN")}`
@@ -138,22 +117,14 @@ export default function UnlockCTA({ premiumCount }: Props) {
                 </p>
               </div>
             </div>
-
-            {/* Entitlements grid */}
             <div className="grid grid-cols-2 gap-3">
               <div className="p-3 rounded-xl bg-gray-50 border border-gray-100">
                 <p className="text-[11px] text-gray-500">AI深度优化</p>
-                <p className="text-lg font-bold text-gray-900">
-                  {user.resume_optimize_left}
-                  <span className="text-xs text-gray-400 font-normal"> 次</span>
-                </p>
+                <p className="text-lg font-bold text-gray-900">{user.resume_optimize_left}<span className="text-xs text-gray-400 font-normal"> 次</span></p>
               </div>
               <div className="p-3 rounded-xl bg-gray-50 border border-gray-100">
                 <p className="text-[11px] text-gray-500">AI模拟面试</p>
-                <p className="text-lg font-bold text-gray-900">
-                  {user.mock_interview_left}
-                  <span className="text-xs text-gray-400 font-normal"> 次</span>
-                </p>
+                <p className="text-lg font-bold text-gray-900">{user.mock_interview_left}<span className="text-xs text-gray-400 font-normal"> 次</span></p>
               </div>
               <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-100">
                 <p className="text-[11px] text-gray-500">PDF导出</p>
@@ -164,20 +135,45 @@ export default function UnlockCTA({ premiumCount }: Props) {
                 <p className="text-lg font-bold text-emerald-600">不限</p>
               </div>
             </div>
-
-            <a
-              href="/membership"
-              className="mt-4 inline-flex items-center gap-1.5 text-xs text-blue-600 hover:text-blue-700 font-medium"
-            >
-              查看完整权益
-              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              </svg>
+            <a href="/membership" className="mt-4 inline-flex items-center gap-1.5 text-xs text-blue-600 hover:text-blue-700 font-medium">
+              查看完整权益 <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
             </a>
           </div>
         </div>
+      ) : user.status === "expired" ? (
+        /* ── Expired Card ── */
+        <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+          <div className="p-6 md:p-8">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-12 h-12 rounded-2xl bg-gray-100 flex items-center justify-center text-2xl">⏰</div>
+              <div>
+                <h3 className="text-lg font-bold text-gray-900">专业版已结束</h3>
+                <p className="text-xs text-gray-500">你的AI优化和面试次数已用完。PDF/Word导出仍可继续使用。</p>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3 mb-4">
+              <div className="p-3 rounded-xl bg-gray-50 border border-gray-100">
+                <p className="text-[11px] text-gray-400">AI深度优化</p>
+                <p className="text-lg font-bold text-gray-400">0 次</p>
+              </div>
+              <div className="p-3 rounded-xl bg-gray-50 border border-gray-100">
+                <p className="text-[11px] text-gray-400">AI模拟面试</p>
+                <p className="text-lg font-bold text-gray-400">0 次</p>
+              </div>
+              <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-100">
+                <p className="text-[11px] text-gray-500">PDF导出</p>
+                <p className="text-lg font-bold text-emerald-600">不限</p>
+              </div>
+              <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-100">
+                <p className="text-[11px] text-gray-500">Word导出</p>
+                <p className="text-lg font-bold text-emerald-600">不限</p>
+              </div>
+            </div>
+            <UnlockCodeInput />
+          </div>
+        </div>
       ) : (
-        /* ── Unlock Section (shown when user is NOT premium) ── */
+        /* ── Unlock Section (free user) ── */
         <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
           {/* Feature checklist */}
           <div className="p-6 md:p-8">
@@ -379,11 +375,12 @@ export default function UnlockCTA({ premiumCount }: Props) {
   );
 }
 
-// ─── Inline unlock code input ──────────────────────────────────
+// ─── Inline unlock code input (membership code, requires login) ──
 
 function UnlockCodeInput() {
   const [code, setCode] = useState("");
   const [status, setStatus] = useState<"idle" | "success" | "error">("idle");
+  const [entitlements, setEntitlements] = useState<{ resume: number; interview: number } | null>(null);
 
   const handleUnlock = async () => {
     setStatus("idle");
@@ -394,30 +391,67 @@ function UnlockCodeInput() {
         body: JSON.stringify({ code: code.trim() }),
       });
       const data = await res.json();
-      if (!res.ok) {
-        setStatus("error");
-        return;
-      }
+      if (!res.ok) { setStatus("error"); return; }
 
-      // Unlock preview for current session
       sessionStorage.setItem("unlocked", "true");
       sessionStorage.setItem("is_premium", "true");
+      setEntitlements({
+        resume: data.resume_optimize_left || 3,
+        interview: data.mock_interview_left || 3,
+      });
       setStatus("success");
-      setTimeout(() => window.location.reload(), 1000);
     } catch {
       setStatus("error");
     }
   };
+
+  // Success card: full entitlements + CTA
+  if (status === "success" && entitlements) {
+    return (
+      <div className="bg-gradient-to-br from-amber-50 to-yellow-50 border border-amber-200 rounded-2xl p-6 text-center">
+        <div className="text-3xl mb-3">🎉</div>
+        <h4 className="text-lg font-bold text-gray-900 mb-1">专业版已激活</h4>
+        <p className="text-xs text-gray-500 mb-4">你的账号已升级为专业版</p>
+
+        <div className="bg-white rounded-xl p-4 mb-5 text-left space-y-2">
+          <div className="flex justify-between items-center">
+            <span className="text-sm text-gray-700">AI深度优化</span>
+            <span className="text-sm font-bold text-gray-900">{entitlements.resume} 次</span>
+          </div>
+          <div className="flex justify-between items-center">
+            <span className="text-sm text-gray-700">AI模拟面试</span>
+            <span className="text-sm font-bold text-gray-900">{entitlements.interview} 次</span>
+          </div>
+          <div className="flex justify-between items-center">
+            <span className="text-sm text-gray-700">PDF导出</span>
+            <span className="text-sm font-bold text-emerald-600">不限次数</span>
+          </div>
+          <div className="flex justify-between items-center">
+            <span className="text-sm text-gray-700">Word导出</span>
+            <span className="text-sm font-bold text-emerald-600">不限次数</span>
+          </div>
+        </div>
+
+        <button
+          onClick={() => {
+            sessionStorage.setItem("unlocked", "true");
+            window.location.reload();
+          }}
+          className="w-full py-3 bg-gradient-to-r from-amber-500 to-orange-500 text-white font-bold rounded-xl hover:from-amber-600 hover:to-orange-600 transition-all text-sm shadow-lg shadow-amber-200"
+        >
+          👉 进入专业版
+        </button>
+        <p className="text-[10px] text-gray-400 mt-2">刷新页面后，顶部将展示专业版标识和剩余次数</p>
+      </div>
+    );
+  }
 
   return (
     <div className="flex gap-2">
       <input
         type="text"
         value={code}
-        onChange={(e) => {
-          setCode(e.target.value);
-          setStatus("idle");
-        }}
+        onChange={(e) => { setCode(e.target.value); setStatus("idle"); }}
         onKeyDown={(e) => e.key === "Enter" && handleUnlock()}
         placeholder="输入解锁码"
         className="flex-1 px-3 py-2 bg-white border border-gray-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-gray-900"
@@ -431,9 +465,6 @@ function UnlockCodeInput() {
       {status === "error" && (
         <p className="text-xs text-red-500 mt-1">解锁码错误</p>
       )}
-      {status === "success" && (
-        <p className="text-xs text-emerald-600 mt-1">激活成功！</p>
-      )}
     </div>
   );
 }
@@ -443,11 +474,13 @@ function UnlockCodeInput() {
 function GuestCodeInput() {
   const [code, setCode] = useState("");
   const [status, setStatus] = useState<"idle" | "success" | "error">("idle");
+  const [guestCount, setGuestCount] = useState(0);
+  const [guestResumeCount, setGuestResumeCount] = useState(0);
 
   // Check if already used
-  const count = typeof window !== "undefined"
-    ? parseInt(sessionStorage.getItem("guest_paid_interviews") || "0", 10)
-    : 0;
+  const alreadyActivated = typeof window !== "undefined"
+    ? (parseInt(sessionStorage.getItem("guest_paid_interviews") || "0", 10) > 0)
+    : false;
 
   const handleUnlock = async () => {
     setStatus("idle");
@@ -460,21 +493,45 @@ function GuestCodeInput() {
       const data = await res.json();
       if (!res.ok) { setStatus("error"); return; }
 
-      // Store guest interviews in sessionStorage
-      sessionStorage.setItem("guest_paid_interviews", String(data.paid_interviews || 1));
+      const count = data.paid_interviews || 1;
+      const resumeCount = data.resume_optimize || 0;
+      sessionStorage.setItem("guest_paid_interviews", String(count));
+      sessionStorage.setItem("guest_resume_optimize", String(resumeCount));
       sessionStorage.setItem("unlocked", "true");
+      setGuestCount(count);
+      setGuestResumeCount(resumeCount);
       setStatus("success");
-      setTimeout(() => window.location.reload(), 800);
     } catch {
       setStatus("error");
     }
   };
 
-  if (count > 0) {
+  if (alreadyActivated || (status === "success" && guestCount > 0)) {
+    const count = guestCount || parseInt(sessionStorage.getItem("guest_paid_interviews") || "1", 10);
+    const resCount = guestResumeCount || parseInt(sessionStorage.getItem("guest_resume_optimize") || "0", 10);
     return (
-      <p className="text-xs text-blue-600 font-medium">
-        ✓ 已激活体验（剩余 {count} 次付费面试）
-      </p>
+      <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-2xl p-5 text-center">
+        <div className="text-2xl mb-2">🎁</div>
+        <h4 className="text-base font-bold text-gray-900 mb-1">体验已激活</h4>
+        <p className="text-xs text-gray-500 mb-3">无需登录，直接体验专业版功能</p>
+        <div className="bg-white rounded-xl p-3 mb-4 inline-block text-left">
+          {resCount > 0 && (
+            <div className="flex justify-between gap-6"><span className="text-sm text-gray-700">AI深度优化</span><span className="text-sm font-bold text-blue-600">{resCount} 次</span></div>
+          )}
+          <div className="flex justify-between gap-6"><span className="text-sm text-gray-700">AI模拟面试</span><span className="text-sm font-bold text-blue-600">{count} 次</span></div>
+        </div>
+        <br />
+        <button
+          onClick={() => {
+            sessionStorage.setItem("unlocked", "true");
+            window.location.reload();
+          }}
+          className="px-6 py-2.5 bg-blue-600 text-white text-sm font-bold rounded-xl hover:bg-blue-700 transition-all shadow-md shadow-blue-200"
+        >
+          👉 开始体验
+        </button>
+        <p className="text-[10px] text-gray-400 mt-2">刷新后即可使用付费面试</p>
+      </div>
     );
   }
 
@@ -496,9 +553,6 @@ function GuestCodeInput() {
       </button>
       {status === "error" && (
         <p className="text-xs text-red-500 mt-1">体验码无效</p>
-      )}
-      {status === "success" && (
-        <p className="text-xs text-emerald-600 mt-1">激活成功！</p>
       )}
     </div>
   );

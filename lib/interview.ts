@@ -1,4 +1,8 @@
 import OpenAI from "openai";
+import { extractJson } from "./json-utils";
+import { getAIClient } from "./ai-config";
+import { getQuestionsForCategory } from "./interview-questions";
+import { redis } from "./auth";
 
 // ─── Types ──────────────────────────────────────
 
@@ -48,23 +52,39 @@ export function loadSession(id: string): InterviewSession | null {
   return sessionStore.get(id) || null;
 }
 
+// ─── History (Redis persistence for completed interviews) ──
+
+export async function saveInterviewHistory(
+  email: string,
+  session: InterviewSession,
+  report?: any
+): Promise<void> {
+  const key = `interview_history:${email}`;
+  const entry = {
+    id: session.id,
+    createdAt: session.createdAt,
+    plan: session.plan,
+    questionCount: session.questions.length,
+    tier: session.tier,
+    report: report ? { totalScore: report.totalScore, passProbability: report.passProbability } : null,
+  };
+  await redis.lpush(key, entry);
+  await redis.ltrim(key, 0, 49); // keep last 50
+}
+
+export async function getInterviewHistory(email: string): Promise<any[]> {
+  const key = `interview_history:${email}`;
+  const raw = await redis.lrange(key, 0, -1);
+  return (raw || []) as any[];
+}
+
 // ─── AI Client ──────────────────────────────────
 
 let _client: OpenAI | null = null;
 
 function getClient() {
-  if (!_client) {
-    _client = new OpenAI({
-      baseURL: "https://api.deepseek.com/v1",
-      apiKey: process.env.DEEPSEEK_API_KEY || "",
-    });
-  }
+  if (!_client) _client = getAIClient();
   return _client;
-}
-
-function extractJson(text: string): string {
-  const match = text.match(/\{[\s\S]*\}/);
-  return match ? match[0] : text;
 }
 
 // ─── Start ──────────────────────────────────────
@@ -84,16 +104,23 @@ async function startFree(
   resumeText: string,
   jdText: string
 ): Promise<{ session: InterviewSession; firstQuestion: string }> {
+  const bankQuestions = getQuestionsForCategory("hr").map(q => q.question).join("\n");
+
   const response = await getClient().chat.completions.create({
     model: "deepseek-chat",
     messages: [
       {
         role: "system",
-        content: `你是资深HR面试官。为用户生成5个个性化面试问题。问题必须深度结合用户简历中的具体经历和岗位要求，而非通用模板。每个问题针对不同维度，让面试者感受到"这个面试官真的看了我的简历"。`,
+        content: `你是资深HR面试官，正对候选人进行面试。你需要深度阅读候选人简历，提出5个针对性问题。每个问题之后会有一个追问来深挖细节。
+
+参考题库（借鉴思路，个性化出题）：
+${bankQuestions}
+
+要求：每个问题必须引用简历中的具体项目或经历，让候选人感受到面试官认真看了简历。`,
       },
       {
         role: "user",
-        content: `=== 简历 ===\n${resumeText}\n=== 岗位 ===\n${jdText}\n\n请从以下维度各出1题，每题必须引用简历中的具体经历或项目：\n1. 自我介绍与岗位理解（结合用户当前职位或最近项目）\n2. 核心能力考察（结合岗位核心要求，问一个用户简历中体现的能力）\n3. 项目深挖（选用户简历中一个具体项目深入提问）\n4. 问题解决与适应力（基于用户经历问一个挑战场景）\n5. 职业规划与自我认知\n\n每题一句话，30-50字，体现个性化。返回JSON：{"plan":{"difficulty":"初/中/高级","duration":"约8分钟","questionCount":5,"focusAreas":["岗位匹配","核心能力","项目经验","问题解决","职业规划"]},"questions":[{"type":"hr","question":"Q1"},{"type":"hr","question":"Q2"},{"type":"hr","question":"Q3"},{"type":"hr","question":"Q4"},{"type":"hr","question":"Q5"}]}`,
+        content: `=== 候选人简历 ===\n${resumeText}\n=== 目标岗位 ===\n${jdText}\n\n你是专业HR，请从以下角度各出1题，每题必须引用简历中的具体经历：\n1. 自我介绍与岗位匹配度\n2. 核心专业能力考察\n3. 项目经历深挖\n4. 问题解决与应变能力\n5. 职业规划与求职动机\n\n每题30-50字，具体、个性化。返回JSON：{"plan":{"difficulty":"初/中/高级","duration":"约10分钟","questionCount":5,"focusAreas":["岗位匹配","核心能力","项目经验","问题解决","职业规划"]},"questions":[{"type":"hr","question":"Q1"},{"type":"hr","question":"Q2"},{"type":"hr","question":"Q3"},{"type":"hr","question":"Q4"},{"type":"hr","question":"Q5"}]}`,
       },
     ],
     temperature: 0.7,
@@ -165,8 +192,6 @@ async function startPaid(
 
 // ─── Submit Answer ──────────────────────────────
 
-// ─── Submit Answer ──────────────────────────────
-
 export async function submitAnswer(
   session: InterviewSession,
   answer: string
@@ -182,49 +207,81 @@ export async function submitAnswer(
   return answerPaid(session, answer);
 }
 
-// Free: no follow-ups, just save answer and move to next question
+// Free: 5 questions, each with 1 HR follow-up
 async function answerFree(
   session: InterviewSession,
   answer: string
 ): Promise<{ action: "nextQuestion" | "end"; question?: string; feedback?: string; session: InterviewSession }> {
-  // Save current answer
   const lastQ = session.questions[session.questions.length - 1];
-  if (lastQ) lastQ.answer = answer;
+  const followUpCount = lastQ?.followUps.length || 0;
 
+  // Save answer to current question or follow-up
+  if (followUpCount > 0) {
+    // Answering a follow-up
+    const lastFollowUp = lastQ.followUps[followUpCount - 1];
+    if (lastFollowUp) lastFollowUp.answer = answer;
+  } else {
+    // Answering main question
+    if (lastQ) lastQ.answer = answer;
+  }
+
+  // After answering main question → generate 1 follow-up
+  if (followUpCount === 0) {
+    const response = await getClient().chat.completions.create({
+      model: "deepseek-chat",
+      messages: [
+        { role: "system", content: "你是专业HR面试官。基于候选人的回答，追问1个具体细节（数据/逻辑/做法），深挖真实能力。追问要简短有力，不超过30字。用JSON回复。" },
+        {
+          role: "user",
+          content: `简历：${session.resumeText.slice(0, 500)}\n岗位：${session.jdText}\n当前问题：${lastQ?.question}\n候选人回答：${answer}\n\n请给出10字以内简短肯定，然后追问1个具体问题。\n返回JSON：{"feedback":"简短反馈","question":"追问问题"}`,
+        },
+      ],
+      temperature: 0.5,
+      max_tokens: 300,
+    });
+
+    const text = response.choices[0]?.message?.content || "";
+    const parsed = JSON.parse(extractJson(text));
+    if (lastQ) lastQ.followUps.push({ question: parsed.question, answer: "" });
+
+    return { action: "nextQuestion", question: parsed.question, feedback: parsed.feedback, session };
+  }
+
+  // After follow-up → move to next question
   session.currentStep++;
   const step = session.currentStep;
 
-  if (step >= session.plan.questionCount) {
+  if (step > session.plan.questionCount) {
     session.status = "completed";
     return { action: "end", session };
   }
 
-  // Get next question with natural transition
+  // Generate next main question
   const response = await getClient().chat.completions.create({
     model: "deepseek-chat",
     messages: [
-      { role: "system", content: "你是HR面试官。根据用户回答给出10字以内简短肯定(如'了解了''说得很清楚')，然后自然过渡到下一题。不重复已问维度。用JSON回复。" },
+      { role: "system", content: "你是资深HR面试官。自然过渡到下一题，问题要结合简历具体经历，不同维度。用JSON回复。" },
       {
         role: "user",
-        content: `简历：${session.resumeText.slice(0, 500)}\n岗位：${session.jdText}\n进度：${step}/${session.plan.questionCount}\n已回答：${session.questions.map(q => `"${q.question}" → ${q.answer}`).join(" | ")}\n\n请给一句简短反馈+第${step + 1}题(30-50字，结合简历具体经历，不同维度)。\n返回JSON：{"feedback":"简短反馈","question":"新题"}`,
+        content: `简历：${session.resumeText.slice(0, 500)}\n岗位：${session.jdText}\n进度：${step}/${session.plan.questionCount}\n已回答：${session.questions.map(q => `"${q.question}" → ${q.answer}`).join(" | ")}\n\n请给一句简短反馈+第${step}题(30-50字，结合简历经历，不同维度)。\n返回JSON：{"feedback":"简短反馈","question":"新题"}`,
       },
     ],
     temperature: 0.5,
     max_tokens: 600,
   });
 
-  const text = response.choices[0]?.message?.content || "";
-  const parsed = JSON.parse(extractJson(text));
+  const text2 = response.choices[0]?.message?.content || "";
+  const parsed2 = JSON.parse(extractJson(text2));
 
   session.questions.push({
-    id: step + 1,
+    id: step,
     type: "hr",
-    question: parsed.question,
+    question: parsed2.question,
     answer: "",
     followUps: [],
   });
 
-  return { action: "nextQuestion", question: parsed.question, feedback: parsed.feedback, session };
+  return { action: "nextQuestion", question: parsed2.question, feedback: parsed2.feedback, session };
 }
 
 // Paid: can follow up, deep dive into experience
@@ -322,20 +379,62 @@ export async function endInterview(session: InterviewSession): Promise<{
     followUps: q.followUps,
   }));
 
+  const SCORING_RUBRIC = `
+## 评分维度定义（0-100）
+
+**专业能力**：回答展示的专业知识和技能深度
+- 90-100：深入理解，有实际案例支撑，能讨论技术细节和行业最佳实践
+- 70-89：理解正确，有具体经验，概念清晰
+- 50-69：基本正确，但缺乏深度和具体案例
+- 30-49：概念模糊，有错误理解
+- 0-29：答非所问或完全不了解
+
+**表达能力**：语言组织、逻辑清晰度、简洁程度
+- 90-100：条理清晰，重点突出，简洁有力，善于用STAR法则
+- 70-89：表达流畅，有结构，能让人理解
+- 50-69：基本可理解，但啰嗦或跳跃
+- 30-49：表达混乱，难以理解
+- 0-29：无法正常沟通
+
+**逻辑能力**：分析问题的框架、因果关系、推理能力
+- 90-100：逻辑严密，有清晰的分析框架，能多角度思考
+- 70-89：逻辑清晰，能自圆其说
+- 50-69：有一定逻辑但不够深入
+- 30-49：逻辑混乱或前后矛盾
+- 0-29：没有逻辑
+
+**结构化思维**：回答的组织结构、总分总、MECE等
+- 90-100：结构化极好，总分总/MECE/金字塔结构明显
+- 70-89：有结构，分段清晰，有总结
+- 50-69：有一定分段，但结构感不强
+- 30-49：缺乏结构，想到哪说到哪
+- 0-29：完全没有结构
+
+**岗位匹配度**：回答体现的对目标岗位的理解和匹配
+- 90-100：精准理解岗位要求，回答完全切中要点
+- 70-89：与岗位相关度高，有一定行业理解
+- 50-69：部分相关，有不够匹配之处
+- 30-49：与岗位关系不大
+- 0-29：完全无关
+
+## 综合评分计算
+total = (专业能力 × 0.3 + 表达能力 × 0.2 + 逻辑能力 × 0.2 + 结构化思维 × 0.15 + 岗位匹配度 × 0.15)
+`;
+
   const response = await getClient().chat.completions.create({
     model: "deepseek-chat",
     messages: [
       {
         role: "system",
-        content: `你是资深面试官，客观评分。${paid ? "付费版输出5维度评分+完整报告+通过概率。" : "免费版输出总分+优劣+建议。"}不虚高不压低。`,
+        content: `你是资深面试官，严格按评分标准打分。${paid ? "付费版：逐题5维度评分+逐题扣分原因+完整报告+通过概率。" : "免费版：总分+优劣+提升建议。"}评分要客观真实，80%的评分应在50-75之间，极少情况给90以上或30以下。${paid ? SCORING_RUBRIC : ""}`,
       },
       {
         role: "user",
-        content: `面试完成。岗位：${session.jdText}\n问答：${JSON.stringify(qa)}\n\n${paid ? "请逐题评分（5维度0-100：专业能力/表达能力/逻辑能力/结构化思维/岗位匹配度+扣分原因），输出：{\"totalScore\":0-100,\"scores\":[{\"questionId\":1,\"professionalism\":0,\"expression\":0,\"logic\":0,\"structure\":0,\"match\":0,\"total\":0,\"deductionReason\":\"\"}],\"strengths\":[],\"weaknesses\":[],\"frequentMistakes\":[],\"suggestedAnswers\":[{\"questionId\":1,\"suggestion\":\"\"}],\"learningDirection\":[],\"passProbability\":\"30%/50%/70%/85%\"}" : "输出：{\"totalScore\":0-100,\"strengths\":[],\"weaknesses\":[],\"suggestions\":[]}"}`,
+        content: `面试完成。目标岗位：${session.jdText.slice(0, 200)}\n问答记录：${JSON.stringify(qa)}\n\n${paid ? `请严格按以下JSON格式输出（注意每个问题的5维度评分必须严谨，逐题写扣分原因）：\n{"totalScore":0-100,"scores":[{"questionId":1,"professionalism":0,"expression":0,"logic":0,"structure":0,"match":0,"total":0,"deductionReason":"具体扣分原因"}],"strengths":["回答好的地方"],"weaknesses":["需要改进的地方"],"frequentMistakes":["跨题反复出现的问题"],"suggestedAnswers":[{"questionId":1,"suggestion":"建议如何回答更好"}],"learningDirection":["具体提升建议"],"passProbability":"30%/50%/70%/85%"}` : "请输出：{\"totalScore\":0-100,\"strengths\":[\"优势\"],\"weaknesses\":[\"不足\"],\"suggestions\":[\"提升建议\"]}"}`,
       },
     ],
     temperature: 0.3,
-    max_tokens: paid ? 4000 : 2000,
+    max_tokens: paid ? 6000 : 2000,
   });
 
   const text = response.choices[0]?.message?.content || "";

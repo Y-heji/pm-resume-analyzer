@@ -1,12 +1,20 @@
 import { redis } from "./auth";
 
-// ─── Entitlements (replaces old Credits) ────────────────
+// ─── Entitlements ────────────────────────────────────────
+// Three-state model: FREE | PREMIUM_ACTIVE | PREMIUM_EXPIRED
+
+export type MemberStatus = "free" | "active" | "expired";
 
 export interface Entitlements {
-  is_premium: boolean;
+  status: MemberStatus;
   activated_at: string | null;
   resume_optimize_left: number;
   mock_interview_left: number;
+}
+
+// Derived flag: premium = was ever activated (doesn't mean currently active)
+export function isPremium(e: Entitlements): boolean {
+  return e.status === "active" || e.status === "expired";
 }
 
 function key(email: string) { return `entitlements:${email}`; }
@@ -16,36 +24,82 @@ function logKey(email: string) { return `credit_log:${email}`; }
 
 export async function getEntitlements(email: string): Promise<Entitlements> {
   const data = await redis.get<Entitlements>(key(email));
-  return data || { is_premium: false, activated_at: null, resume_optimize_left: 0, mock_interview_left: 0 };
+  return data || { status: "free", activated_at: null, resume_optimize_left: 0, mock_interview_left: 0 };
 }
 
 async function setEntitlements(email: string, e: Entitlements): Promise<void> {
   await redis.set(key(email), e);
 }
 
-// ─── Consume ────────────────────────────────────────────
+// Check if all credits exhausted → transition to expired
+function checkExpired(e: Entitlements): Entitlements {
+  if (e.status === "active" && e.resume_optimize_left <= 0 && e.mock_interview_left <= 0) {
+    e.status = "expired";
+  }
+  return e;
+}
+
+// ─── Consume (atomic via Redis Lua) ──────────────────────
+
+const ATOMIC_CONSUME_SCRIPT = `
+  local key = KEYS[1]
+  local field = ARGV[1]
+  local raw = redis.call('GET', key)
+  if not raw then return -1 end
+  local data = cjson.decode(raw)
+  if not data[field] or data[field] <= 0 then return 0 end
+  data[field] = data[field] - 1
+  redis.call('SET', key, cjson.encode(data))
+  return 1
+`;
 
 export async function consumeResumeOptimize(email: string): Promise<boolean> {
-  const e = await getEntitlements(email);
-  if (e.resume_optimize_left <= 0) return false;
-  e.resume_optimize_left--;
-  await setEntitlements(email, e);
-  await log(email, "resume_optimize", -1, "AI深度简历优化");
-  return true;
+  try {
+    const result = await redis.eval(ATOMIC_CONSUME_SCRIPT, [key(email)], ["resume_optimize_left"]) as number;
+    if (result === 1) {
+      // Check and transition to expired if all credits gone
+      const e = await getEntitlements(email);
+      if (e.resume_optimize_left <= 0 && e.mock_interview_left <= 0 && e.status === "active") {
+        e.status = "expired";
+        await setEntitlements(email, e);
+      }
+      await log(email, "resume_optimize", -1, "AI深度简历优化");
+      return true;
+    }
+    return false;
+  } catch {
+    const e = await getEntitlements(email);
+    if (e.resume_optimize_left <= 0) return false;
+    e.resume_optimize_left--;
+    e.status = checkExpired(e).status;
+    await setEntitlements(email, e);
+    await log(email, "resume_optimize", -1, "AI深度简历优化");
+    return true;
+  }
 }
 
 export async function consumeMockInterview(email: string): Promise<boolean> {
-  const e = await getEntitlements(email);
-  if (e.mock_interview_left <= 0) return false;
-  e.mock_interview_left--;
-  await setEntitlements(email, e);
-  await log(email, "mock_interview", -1, "AI模拟面试");
-  return true;
-}
-
-export async function isPremium(email: string): Promise<boolean> {
-  const e = await getEntitlements(email);
-  return e.is_premium;
+  try {
+    const result = await redis.eval(ATOMIC_CONSUME_SCRIPT, [key(email)], ["mock_interview_left"]) as number;
+    if (result === 1) {
+      const e = await getEntitlements(email);
+      if (e.resume_optimize_left <= 0 && e.mock_interview_left <= 0 && e.status === "active") {
+        e.status = "expired";
+        await setEntitlements(email, e);
+      }
+      await log(email, "mock_interview", -1, "AI模拟面试");
+      return true;
+    }
+    return false;
+  } catch {
+    const e = await getEntitlements(email);
+    if (e.mock_interview_left <= 0) return false;
+    e.mock_interview_left--;
+    e.status = checkExpired(e).status;
+    await setEntitlements(email, e);
+    await log(email, "mock_interview", -1, "AI模拟面试");
+    return true;
+  }
 }
 
 // ─── Redeem Code ────────────────────────────────────────
@@ -63,7 +117,11 @@ export async function getRedeemCode(code: string): Promise<RedeemCode | null> {
 }
 
 export async function markCodeUsed(code: string, email: string): Promise<void> {
-  await redis.del(`redeem:${code}`);
+  // Mark as used instead of deleting, so admin can track
+  const existing = await redis.get(`redeem:${code}`);
+  if (existing) {
+    await redis.set(`redeem:${code}`, { ...(existing as any), used: true, used_by: email, used_at: new Date().toISOString() });
+  }
   await log(email, "redeem", 0, `兑换码 ${code} 已使用并销毁`);
 }
 
@@ -74,8 +132,8 @@ export async function redeemCode(email: string, code: string): Promise<RedeemCod
   if (redeem.used) return null;
 
   const e = await getEntitlements(email);
-  e.is_premium = true;
-  e.activated_at = new Date().toISOString();
+  e.status = "active";
+  e.activated_at = e.activated_at || new Date().toISOString();
   e.resume_optimize_left += redeem.resume_optimize;
   e.mock_interview_left += redeem.mock_interview;
   await setEntitlements(email, e);
@@ -119,9 +177,10 @@ export async function getCreditLogs(email: string): Promise<any[]> {
 
 // ─── Guest Codes (one-time, no login) ────────────────────
 
-export async function createGuestCodes(codes: string[], paidInterviews: number): Promise<void> {
+export async function createGuestCodes(codes: string[], resumeOptimize: number, paidInterviews: number): Promise<void> {
   for (const code of codes) {
     await redis.set(`guest_code:${code}`, {
+      resume_optimize: resumeOptimize,
       paid_interviews: paidInterviews,
       used: false,
       created_at: new Date().toISOString(),
@@ -129,10 +188,11 @@ export async function createGuestCodes(codes: string[], paidInterviews: number):
   }
 }
 
-export async function redeemGuestCode(code: string): Promise<number | null> {
+export async function redeemGuestCode(code: string): Promise<{ resume_optimize: number; paid_interviews: number } | null> {
   const key = `guest_code:${code}`;
-  const data = await redis.get<{ paid_interviews: number; used: boolean }>(key);
+  const data = await redis.get<{ resume_optimize: number; paid_interviews: number; used: boolean }>(key);
   if (!data || data.used) return null;
-  await redis.del(key); // one-time: destroy immediately
-  return data.paid_interviews;
+  // Mark as used instead of deleting
+  await redis.set(key, { ...data, used: true, used_at: new Date().toISOString() });
+  return { resume_optimize: data.resume_optimize || 0, paid_interviews: data.paid_interviews || 0 };
 }

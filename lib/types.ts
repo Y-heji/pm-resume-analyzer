@@ -124,6 +124,7 @@ export interface RewriteResult {
   sections: RewriteSection[];
   modules: RewriteModule[];
   finalResume: FinalResume;
+  paidPreview?: RewriteModule; // single paid-quality comparison for free tier
 }
 
 export interface WaitlistEntry {

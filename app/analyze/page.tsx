@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import FileUpload from "@/components/file-upload";
-import { jobDatabase, industries, searchJobs } from "@/lib/job-database";
+import { jobDatabase, industries, searchJobs, categoryTree } from "@/lib/job-database";
 import { track } from "@/lib/analytics";
 
 const RESUME_CACHE_KEY = "cached_resume_text";
@@ -239,8 +239,8 @@ export default function AnalyzePage() {
                 </div>
               )}
 
-              {/* Industry filter tags */}
-              <div className="flex gap-1.5 flex-wrap">
+              {/* Industry filter tree */}
+              <div className="space-y-2">
                 <button
                   onClick={() => setSelectedIndustry("")}
                   className={`text-xs px-2.5 py-1 rounded-full transition-colors ${
@@ -251,20 +251,36 @@ export default function AnalyzePage() {
                 >
                   全部
                 </button>
-                {industries.map((ind) => (
-                  <button
-                    key={ind}
-                    onClick={() =>
-                      setSelectedIndustry(selectedIndustry === ind ? "" : ind)
-                    }
-                    className={`text-xs px-2.5 py-1 rounded-full transition-colors ${
-                      selectedIndustry === ind
-                        ? "bg-blue-600 text-white"
-                        : "bg-white border border-gray-200 text-gray-500 hover:border-blue-300"
-                    }`}
-                  >
-                    {ind}
-                  </button>
+                {categoryTree.map((cat) => (
+                  <span key={cat.value} className="inline-flex items-center gap-0.5">
+                    <button
+                      onClick={() => setSelectedIndustry(cat.value === selectedIndustry ? "" : cat.value)}
+                      className={`text-xs px-2.5 py-1 rounded-full transition-colors ${
+                        selectedIndustry === cat.value
+                          ? "bg-blue-600 text-white"
+                          : "bg-white border border-gray-200 text-gray-600 hover:border-blue-300"
+                      }`}
+                    >
+                      {cat.label}
+                    </button>
+                    {(selectedIndustry === cat.value || !selectedIndustry) && cat.children && cat.children.length > 0 && (
+                      <span className="inline-flex gap-1 ml-0.5">
+                        {cat.children.map((ch) => (
+                          <button
+                            key={ch.value}
+                            onClick={() => setSelectedIndustry(ch.value === selectedIndustry ? "" : ch.value)}
+                            className={`text-[10px] px-2 py-0.5 rounded-full transition-colors ${
+                              selectedIndustry === ch.value
+                                ? "bg-blue-500 text-white"
+                                : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+                            }`}
+                          >
+                            {ch.label}
+                          </button>
+                        ))}
+                      </span>
+                    )}
+                  </span>
                 ))}
               </div>
 

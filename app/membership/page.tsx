@@ -13,6 +13,7 @@ interface Entitlements {
 export default function MembershipPage() {
   const [entitlements, setEntitlements] = useState<Entitlements | null>(null);
   const [logs, setLogs] = useState<any[]>([]);
+  const [interviews, setInterviews] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -33,6 +34,14 @@ export default function MembershipPage() {
       .then((r) => r.json())
       .then((d) => {
         if (d.logs) setLogs(d.logs);
+      })
+      .catch(() => {});
+
+    // Also fetch interview history
+    fetch("/api/interview")
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.history) setInterviews(d.history);
       })
       .catch(() => {});
   }, [entitlements?.email]);
@@ -197,6 +206,38 @@ export default function MembershipPage() {
                     {entry.amount > 0 ? "+" : ""}
                     {entry.amount}
                   </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Interview History */}
+      {interviews.length > 0 && (
+        <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden mb-6">
+          <div className="p-6">
+            <h2 className="text-sm font-semibold text-gray-900 mb-4">面试记录</h2>
+            <div className="space-y-3">
+              {interviews.map((entry, i) => (
+                <div key={i} className="p-3 rounded-xl bg-gray-50 flex items-center justify-between">
+                  <div>
+                    <p className="text-xs text-gray-700">
+                      {entry.plan?.difficulty || "未知"} · {entry.questionCount || 0} 题
+                      {entry.tier === "paid" && <span className="ml-1 text-[10px] px-1 py-0.5 bg-blue-100 text-blue-600 rounded">专业版</span>}
+                    </p>
+                    <p className="text-[10px] text-gray-400">
+                      {new Date(entry.createdAt).toLocaleString("zh-CN")}
+                    </p>
+                  </div>
+                  {entry.report && (
+                    <div className="text-right">
+                      <p className="text-sm font-bold text-gray-900">{entry.report.totalScore} 分</p>
+                      {entry.report.passProbability && (
+                        <p className="text-[10px] text-gray-400">通过率 {entry.report.passProbability}</p>
+                      )}
+                    </div>
+                  )}
                 </div>
               ))}
             </div>

@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
 import { createRedeemCodes } from "@/lib/credits";
+import { checkAdminAuth, adminAuthError } from "@/lib/admin-auth";
 
 export async function POST(req: Request) {
+  if (!checkAdminAuth(req)) return adminAuthError();
   try {
     const { count, resumeOptimize, mockInterview, prefix } = await req.json();
     if (!count || count > 100) return NextResponse.json({ error: "数量1-100" }, { status: 400 });

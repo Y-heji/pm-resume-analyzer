@@ -48,9 +48,17 @@ export default function ResumePreviewPage() {
     setExportError(null);
     try {
       if (format === "pdf") {
-        // Open in new window, user prints to PDF
-        const w = window.open("", "_blank");
-        if (w) { w.document.write(htmlContent); w.document.close(); w.print(); }
+        const res = await fetch("/api/export-pdf", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ finalResume, templateId }),
+        });
+        if (!res.ok) { const err = await res.json().catch(() => ({})); throw new Error(err.error || "PDF导出失败"); }
+        const buf = await res.arrayBuffer();
+        const blob = new Blob([buf], { type: "application/pdf" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a"); a.href = url; a.download = `resume-${Date.now()}.pdf`; a.click();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
       } else {
         const res = await fetch("/api/export-word", {
           method: "POST",
@@ -69,7 +77,7 @@ export default function ResumePreviewPage() {
     } finally {
       setDownloading(false);
     }
-  }, [finalResume]);
+  }, [finalResume, templateId, htmlContent]);
 
   if (loading) {
     return (

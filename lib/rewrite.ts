@@ -1,36 +1,42 @@
 import OpenAI from "openai";
 import type { RewriteResult } from "./types";
+import { extractJson } from "./json-utils";
+import { getAIClient } from "./ai-config";
 
 let _client: OpenAI | null = null;
 
 function getClient() {
-  if (!_client) {
-    _client = new OpenAI({
-      baseURL: "https://api.deepseek.com/v1",
-      apiKey: process.env.DEEPSEEK_API_KEY,
-    });
-  }
+  if (!_client) _client = getAIClient();
   return _client;
 }
 
 // ─── Free Tier System Prompt (v1.0 verified) ────────────────────
 
-const FREE_SYSTEM_PROMPT = `你是简历优化助手。做轻量润色（约20%提升），不编造。
+const FREE_SYSTEM_PROMPT = `你是简历优化助手。做可见的质量提升，让简历表达更流畅专业。
 
-## 规则
-1. 保留原文动词级别 — "参与"不改"主导"，"负责"不改"统筹"。可以做极小调整："做了"→"完成"，"帮"→"协助"。
-2. 保留原文数据 — 原文有数字就留着，没有不编。不要加百分比和推测数字。
-3. 删除口语和无信息量表述："天天""随便""偶尔""一些""各种""弄"。
-4. 可以合并啰嗦的短句，让表达更流畅。
-5. 不堆术语，不用互联网黑话。
+## 免费版规则
+1. **增强动词** — "做了"→"完成/实现"，"帮忙"→"协助/支持"，"搞"→"推进/执行"，"写"→"编写/撰写"。
+2. **丰富细节** — 把模糊表达具体化。例如"负责社群运营"→"负责社群日常内容发布、用户互动和活动策划"。
+3. **合并碎片** — 把零散的短句合并成流畅完整的表达。
+4. **删除废话** — 去掉"各种""一些""差不多""天天"等无信息量词汇。
+5. **轻度量化** — 只从原文能推断的数字做保守估算（如"群里"可估"500人群"），不凭空造数据。
 6. 基础信息放入 finalResume.header，不放入 modules。
 
+## 重要约束
+- 不重构 STAR 结构
+- 不大量注入 JD 关键词
+- 不升级专业术语层级
+- 上述能力属于付费版
+
 ## 示例
-原文：负责用户反馈收集和整理，做了分类之后给到开发，提升了客服那边的工作效率
-优化后：负责用户反馈收集与分类整理，提交给开发团队跟进，提升了客服处理效率。
+原文：负责社群运营，在群里发内容和优惠券，提升了用户活跃度。
+免费版：负责日常社群内容发布、用户互动和活动策划，定期推送优惠福利并回复用户咨询，保持群活跃度和参与度。
+
+原文：负责用户反馈收集和整理，做了分类之后给到开发，提升了工作效率。
+免费版：负责用户反馈的收集、分类与整理，将高频问题按优先级同步给开发团队跟进处理，推动工单处理流程优化。
 
 ## 输出格式
-{"summary":"一句话","atsImprovement":0,"matchScoreImprovement":0,"aiPmMatchEnhancement":"","modules":[{"sourceSection":"","sectionTitle":"","original":"","rewritten":"","optimizationReasons":[""],"category":"professional","scoreImprovement":{"ats":0,"professionalism":0,"dataDriven":0}}],"finalResume":{"header":{"name":"","role":"","contact":""},"summary":"","sections":[{"label":"","entries":[{"title":"","subtitle":"","bullets":[]}]}],"skills":[],"education":{"school":"","degree":"","year":""}}}
+{"summary":"一句话概括优化效果","atsImprovement":0,"matchScoreImprovement":0,"aiPmMatchEnhancement":"","modules":[{"sourceSection":"","sectionTitle":"","original":"","rewritten":"","optimizationReasons":[""],"category":"professional","scoreImprovement":{"ats":0,"professionalism":0,"dataDriven":0}}],"finalResume":{"header":{"name":"","role":"","contact":""},"summary":"","sections":[{"label":"","entries":[{"title":"","subtitle":"","bullets":[]}]}],"skills":[],"education":{"school":"","degree":"","year":""}}}
 只输出 JSON`;
 
 // ─── Deep (Paid) Tier System Prompt ────────────────────────────
@@ -86,6 +92,10 @@ const DEEP_SYSTEM_PROMPT = `你是一位诚实的简历优化顾问，帮助用�
 
 function buildRewritePrompt(resumeText: string, jdText: string, deep = false) {
   const count = deep ? "10-16" : "8-15";
+  let extra = "";
+  if (!deep) {
+    extra = `\n\n【付费版预览】选1条你认为最能体现付费版优势的优化，额外输出paidPreview字段。务必注意：paidPreview.rewritten必须和modules中对应项的rewritten完全不同——免费版做动词升级和碎片合并，付费版做STAR重构+数据量化+关键词注入+术语升级。两版要让人一眼看出差距。`;
+  }
   return `增强以下简历。保留原有结构和顺序，只优化每条内容的表达质量。
 
 === 用户简历 ===
@@ -96,27 +106,7 @@ ${jdText}
 
 逐条增强简历中的经历和描述（${count}条）。请确保覆盖简历中所有工作经历和项目经历，不要遗漏任何段落。姓名/电话/邮箱等基础信息放入finalResume.header，不放入modules。
 
-严格按简历从上到下顺序输出。优先增强工作经验、项目经历、自我介绍。`;
-}
-
-// ─── JSON Extractor ─────────────────────────────────────────────
-
-function extractJson(text: string): string {
-  const codeBlockMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/);
-  let json = codeBlockMatch ? codeBlockMatch[1].trim() : "";
-  if (!json) {
-    const firstBrace = text.indexOf("{");
-    const lastBrace = text.lastIndexOf("}");
-    if (firstBrace === -1 || lastBrace === -1)
-      throw new Error("No JSON found in response");
-    json = text.slice(firstBrace, lastBrace + 1);
-  }
-  // Sanitize: escape unescaped control characters inside strings
-  return json.replace(/("(?:[^"\\]|\\.)*")/g, (match) => {
-    return match.replace(/[\x00-\x1f\x7f]/g, (ch) => {
-      return "\\u" + ("0000" + ch.charCodeAt(0).toString(16)).slice(-4);
-    });
-  });
+严格按简历从上到下顺序输出。优先增强工作经验、项目经历、自我介绍。${extra}`;
 }
 
 // ─── Main Export ────────────────────────────────────────────────
@@ -195,6 +185,7 @@ export async function rewriteResume(
         sections,
         modules: parsed.modules,
         finalResume: parsed.finalResume,
+        ...(parsed.paidPreview ? { paidPreview: parsed.paidPreview } : {}),
       };
     } catch (err) {
       lastError = err as Error;

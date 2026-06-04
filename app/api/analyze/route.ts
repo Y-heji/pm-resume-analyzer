@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { analyzeResume } from "@/lib/ai";
+import { redis } from "@/lib/auth";
 
 export async function POST(req: Request) {
   try {
@@ -27,6 +28,12 @@ export async function POST(req: Request) {
     }
 
     const result = await analyzeResume(resumeText, jdText, deep === true);
+
+    // Persist to server: 24h TTL (include original texts for rewrite flow)
+    await redis.set(`analysis:${result.id}`, JSON.stringify(result), { ex: 86400 }).catch(() => {});
+    await redis.set(`analysis:${result.id}:resume`, resumeText, { ex: 86400 }).catch(() => {});
+    await redis.set(`analysis:${result.id}:jd`, jdText, { ex: 86400 }).catch(() => {});
+
     return NextResponse.json(result);
   } catch (err) {
     const message =

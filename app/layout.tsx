@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import PageTracker from "@/components/page-tracker";
 import AuthButton from "@/components/auth/auth-button";
+import PremiumBar from "@/components/auth/premium-bar";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -36,6 +37,7 @@ export default function RootLayout({
           </a>
           <AuthButton />
         </header>
+        <PremiumBar />
         <main className="flex-1"><PageTracker>{children}</PageTracker></main>
         <footer className="text-center text-sm text-gray-400 py-6 shrink-0">
           AI 产品经理求职分析工具 · 仅供学习参考
