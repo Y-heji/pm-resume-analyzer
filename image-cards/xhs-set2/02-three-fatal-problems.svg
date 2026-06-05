@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 1067">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#f8fafc"/>
+      <stop offset="100%" stop-color="#fff"/>
+    </linearGradient>
+  </defs>
+  <rect width="800" height="1067" fill="url(#bg)"/>
+  <rect x="0" y="0" width="800" height="6" fill="#2563eb"/>
+
+  <!-- Header -->
+  <text x="400" y="80" text-anchor="middle" font-family="'PingFang SC','Noto Sans SC',sans-serif" font-size="30" font-weight="900" fill="#1e293b">简历石沉大海的 3 个</text>
+  <text x="400" y="130" text-anchor="middle" font-family="'PingFang SC','Noto Sans SC',sans-serif" font-size="30" font-weight="900" fill="#dc2626">致命原因</text>
+  <text x="400" y="170" text-anchor="middle" font-family="'PingFang SC','Noto Sans SC',sans-serif" font-size="14" fill="#94a3b8">ATS 系统视角 · 你投的简历 HR 根本看不到</text>
+
+  <!-- Problem 1 -->
+  <rect x="60" y="230" width="680" height="220" rx="16" fill="white" stroke="#fecaca" stroke-width="2"/>
+  <rect x="60" y="230" width="80" height="220" rx="16" fill="#fef2f2"/>
+  <rect x="124" y="230" width="16" height="220" fill="#fef2f2"/>
+  <text x="100" y="280" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="36" font-weight="900" fill="#dc2626">①</text>
+  <text x="160" y="275" font-family="'PingFang SC','Noto Sans SC',sans-serif" font-size="20" font-weight="700" fill="#1e293b">动词太弱，系统判定「无实操经验」</text>
+  <line x1="160" y1="295" x2="400" y2="295" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="170" y="325" font-family="'PingFang SC','Noto Sans SC',sans-serif" font-size="15" fill="#64748b">❌ "负责社群运营"</text>
+  <text x="170" y="355" font-family="'PingFang SC','Noto Sans SC',sans-serif" font-size="15" fill="#64748b">❌ "参与过几次裂变活动"</text>
+  <text x="170" y="385" font-family="'PingFang SC','Noto Sans SC',sans-serif" font-size="15" fill="#64748b">❌ "帮忙处理用户反馈"</text>
+  <rect x="170" y="405" width="200" height="24" rx="6" fill="#fee2e2"/>
+  <text x="270" y="422" text-anchor="middle" font-family="'PingFang SC','Noto Sans SC',sans-serif" font-size="11" fill="#dc2626">负责 / 参与 / 帮忙 = 0 分</text>
+
+  <!-- Problem 2 -->
+  <rect x="60" y="480" width="680" height="220" rx="16" fill="white" stroke="#fed7aa" stroke-width="2"/>
+  <rect x="60" y="480" width="80" height="220" rx="16" fill="#fff7ed"/>
+  <rect x="124" y="480" width="16" height="220" fill="#fff7ed"/>
+  <text x="100" y="530" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="36" font-weight="900" fill="#f97316">②</text>
+  <text x="160" y="525" font-family="'PingFang SC','Noto Sans SC',sans-serif" font-size="20" font-weight="700" fill="#1e293b">JD 关键词一个没中，系统直接过滤</text>
+  <line x1="160" y1="545" x2="400" y2="545" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="170" y="575" font-family="'PingFang SC','Noto Sans SC',sans-serif" font-size="15" fill="#9a3412">JD 要求：用户增长 · 数据分析 · AB 测试</text>
+  <text x="170" y="605" font-family="'PingFang SC','Noto Sans SC',sans-serif" font-size="15" fill="#9a3412">简历里：发优惠券 · 群活跃 · 用户反馈</text>
+  <rect x="170" y="625" width="200" height="24" rx="6" fill="#fed7aa"/>
+  <text x="270" y="642" text-anchor="middle" font-family="'PingFang SC','Noto Sans SC',sans-serif" font-size="11" fill="#f97316">关键词命中率 &lt; 20% → 淘汰</text>
+
+  <!-- Problem 3 -->
+  <rect x="60" y="730" width="680" height="220" rx="16" fill="white" stroke="#e2e8f0" stroke-width="2"/>
+  <rect x="60" y="730" width="80" height="220" rx="16" fill="#f1f5f9"/>
+  <rect x="124" y="730" width="16" height="220" fill="#f1f5f9"/>
+  <text x="100" y="780" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="36" font-weight="900" fill="#64748b">③</text>
+  <text x="160" y="775" font-family="'PingFang SC','Noto Sans SC',sans-serif" font-size="20" font-weight="700" fill="#1e293b">排版格式坑，ATS 直接读成乱码</text>
+  <line x1="160" y1="795" x2="400" y2="795" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="170" y="825" font-family="'PingFang SC','Noto Sans SC',sans-serif" font-size="15" fill="#475569">❌ 多栏排版 → ATS 读成乱码</text>
+  <text x="170" y="855" font-family="'PingFang SC','Noto Sans SC',sans-serif" font-size="15" fill="#475569">❌ 图表/图标 → 文字无法抓取</text>
+  <text x="170" y="885" font-family="'PingFang SC','Noto Sans SC',sans-serif" font-size="15" fill="#475569">❌ PDF 加密 → 30% ATS 解析失败</text>
+  <rect x="170" y="905" width="180" height="24" rx="6" fill="#e2e8f0"/>
+  <text x="260" y="922" text-anchor="middle" font-family="'PingFang SC','Noto Sans SC',sans-serif" font-size="11" fill="#64748b">格式问题 → 直接跳过</text>
+
+  <text x="400" y="1010" text-anchor="middle" font-family="'PingFang SC','Noto Sans SC',sans-serif" font-size="12" fill="#cbd5e1">AI 职业师 · 3 分钟免费诊断你的简历 → 右滑</text>
+</svg>

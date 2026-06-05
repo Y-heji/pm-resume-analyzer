@@ -1,0 +1,100 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 1067">
+  <defs>
+    <linearGradient id="bg2" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#f0f7ff"/>
+      <stop offset="100%" stop-color="#ffffff"/>
+    </linearGradient>
+    <linearGradient id="proGrad" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#f59e0b"/>
+      <stop offset="100%" stop-color="#ea580c"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="800" height="1067" fill="url(#bg2)"/>
+  <rect x="0" y="0" width="800" height="6" fill="linearGradient(#2563eb)"/>
+
+  <!-- Header -->
+  <text x="400" y="70" text-anchor="middle" font-family="'PingFang SC','Noto Sans SC',sans-serif" font-size="32" font-weight="900" fill="#1e293b">
+    免费 vs 专业 · 同一段经历
+  </text>
+  <text x="400" y="115" text-anchor="middle" font-family="'PingFang SC','Noto Sans SC',sans-serif" font-size="16" fill="#64748b">
+    改写成什么样？
+  </text>
+
+  <!-- Original text box -->
+  <rect x="60" y="160" width="680" height="100" rx="12" fill="#f8fafc" stroke="#e2e8f0" stroke-width="1.5"/>
+  <text x="400" y="188" text-anchor="middle" font-family="'PingFang SC','Noto Sans SC',sans-serif" font-size="13" font-weight="700" fill="#64748b">📄 原 文</text>
+  <text x="400" y="220" text-anchor="middle" font-family="'PingFang SC','Noto Sans SC',sans-serif" font-size="15" fill="#475569">
+    "负责社群运营，在群里发内容和优惠券"
+  </text>
+  <text x="400" y="245" text-anchor="middle" font-family="'PingFang SC','Noto Sans SC',sans-serif" font-size="12" fill="#94a3b8">
+    常见的「看起来什么都没做」型简历描述
+  </text>
+
+  <!-- Arrow -->
+  <line x1="400" y1="270" x2="400" y2="320" stroke="#94a3b8" stroke-width="2"/>
+  <polygon points="400,326 392,316 408,316" fill="#94a3b8"/>
+
+  <!-- Free version card -->
+  <rect x="60" y="340" width="680" height="170" rx="16" fill="white" stroke="#cbd5e1" stroke-width="1.5"/>
+  <rect x="60" y="340" width="680" height="42" rx="16" fill="#f1f5f9"/>
+  <rect x="60" y="366" width="680" height="16" fill="#f1f5f9"/>
+  <text x="400" y="367" text-anchor="middle" font-family="'PingFang SC','Noto Sans SC',sans-serif" font-size="16" font-weight="700" fill="#334155">✨ 免费版改写</text>
+
+  <text x="100" y="418" font-family="'PingFang SC','Noto Sans SC',sans-serif" font-size="15" fill="#475569" style="line-height:1.6">
+    "负责社群日常内容发布、用户互动和活动策划，定期推送优惠福利并回复用户咨询，保持群活跃度和参与度。"
+  </text>
+
+  <rect x="100" y="440" width="80" height="20" rx="6" fill="#dbeafe"/>
+  <text x="140" y="454" text-anchor="middle" font-family="'PingFang SC','Noto Sans SC',sans-serif" font-size="10" fill="#3b82f6">✅ 语句通顺了</text>
+  <rect x="190" y="440" width="80" height="20" rx="6" fill="#dbeafe"/>
+  <text x="230" y="454" text-anchor="middle" font-family="'PingFang SC','Noto Sans SC',sans-serif" font-size="10" fill="#3b82f6">✅ 动词增强了</text>
+  <rect x="280" y="440" width="100" height="20" rx="6" fill="#fee2e2"/>
+  <text x="330" y="454" text-anchor="middle" font-family="'PingFang SC','Noto Sans SC',sans-serif" font-size="10" fill="#ef4444">❌ 没数据</text>
+  <rect x="390" y="440" width="100" height="20" rx="6" fill="#fee2e2"/>
+  <text x="440" y="454" text-anchor="middle" font-family="'PingFang SC','Noto Sans SC',sans-serif" font-size="10" fill="#ef4444">❌ 没关键词</text>
+
+  <!-- Arrow -->
+  <line x1="400" y1="520" x2="400" y2="565" stroke="#f59e0b" stroke-width="2"/>
+  <polygon points="400,570 392,560 408,560" fill="#f59e0b"/>
+
+  <!-- Paid version card -->
+  <rect x="60" y="585" width="680" height="210" rx="16" fill="white" stroke="#f59e0b" stroke-width="2"/>
+  <rect x="60" y="585" width="680" height="42" rx="16" fill="url(#proGrad)"/>
+  <rect x="60" y="611" width="680" height="16" fill="url(#proGrad)"/>
+  <text x="400" y="612" text-anchor="middle" font-family="'PingFang SC','Noto Sans SC',sans-serif" font-size="16" font-weight="700" fill="white">👑 专业版改写</text>
+
+  <text x="95" y="665" font-family="'PingFang SC','Noto Sans SC',sans-serif" font-size="15" font-weight="600" fill="#1e293b">
+    "主导 3 个 500 人微信社群运营，策划日更内容和周度优惠活动，
+  </text>
+  <text x="95" y="692" font-family="'PingFang SC','Noto Sans SC',sans-serif" font-size="15" font-weight="600" fill="#1e293b">
+    月均触达 3000+ 用户，社群活跃度维持在 60% 以上。"
+  </text>
+
+  <rect x="100" y="718" width="110" height="22" rx="6" fill="#dcfce7"/>
+  <text x="155" y="733" text-anchor="middle" font-family="'PingFang SC','Noto Sans SC',sans-serif" font-size="10" fill="#16a34a">✅ STAR 重构</text>
+  <rect x="220" y="718" width="110" height="22" rx="6" fill="#dcfce7"/>
+  <text x="275" y="733" text-anchor="middle" font-family="'PingFang SC','Noto Sans SC',sans-serif" font-size="10" fill="#16a34a">✅ 数据量化</text>
+  <rect x="340" y="718" width="110" height="22" rx="6" fill="#dcfce7"/>
+  <text x="395" y="733" text-anchor="middle" font-family="'PingFang SC','Noto Sans SC',sans-serif" font-size="10" fill="#16a34a">✅ 关键词注入</text>
+  <rect x="460" y="718" width="110" height="22" rx="6" fill="#dcfce7"/>
+  <text x="515" y="733" text-anchor="middle" font-family="'PingFang SC','Noto Sans SC',sans-serif" font-size="10" fill="#16a34a">✅ 专业术语</text>
+
+  <!-- Experience code CTA -->
+  <rect x="120" y="850" width="560" height="100" rx="16" fill="#2563eb"/>
+  <text x="400" y="885" text-anchor="middle" font-family="'PingFang SC','Noto Sans SC',sans-serif" font-size="14" fill="#93c5fd">
+    🎁 限时体验
+  </text>
+  <text x="400" y="918" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="24" font-weight="900" fill="white" letter-spacing="4">
+    XHS-D8JLA7
+  </text>
+  <text x="400" y="940" text-anchor="middle" font-family="'PingFang SC','Noto Sans SC',sans-serif" font-size="11" fill="#93c5fd">
+    免费用 AI 改你的简历 → ai-career.xyz
+  </text>
+
+  <!-- Brand -->
+  <text x="400" y="1010" text-anchor="middle" font-family="'PingFang SC','Noto Sans SC',sans-serif" font-size="12" fill="#cbd5e1">
+    AI 职业师 · 你的 AI 求职助手
+  </text>
+</svg>

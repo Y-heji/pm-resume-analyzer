@@ -1,3 +1,6 @@
+"use client";
+
+import { useState } from "react";
 import Link from "next/link";
 
 const hotSearches = [
@@ -6,14 +9,41 @@ const hotSearches = [
 ];
 
 export default function Home() {
+  const [guestCode, setGuestCode] = useState("");
+  const [redeemMsg, setRedeemMsg] = useState("");
+  const [redeeming, setRedeeming] = useState(false);
+
+  const handleRedeem = async () => {
+    if (!guestCode.trim()) return;
+    setRedeeming(true); setRedeemMsg("");
+    try {
+      const res = await fetch("/api/redeem-guest", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code: guestCode.trim().toUpperCase() }),
+      });
+      const data = await res.json();
+      if (!res.ok) { setRedeemMsg(data.error || "体验码无效"); return; }
+      sessionStorage.setItem("guest_paid_interviews", String(data.paid_interviews || 1));
+      sessionStorage.setItem("guest_resume_optimize", String(data.resume_optimize || 0));
+      sessionStorage.setItem("unlocked", "true");
+      setRedeemMsg("激活成功！即将跳转...");
+      setTimeout(() => { window.location.href = "/analyze"; }, 800);
+    } catch {
+      setRedeemMsg("网络错误，请重试");
+    } finally {
+      setRedeeming(false);
+    }
+  };
+
   return (
     <div className="max-w-3xl mx-auto px-6 py-16 text-center">
       <h1 className="text-4xl md:text-5xl font-bold tracking-tight mb-4">
-        AI 产品经理求职分析
+        AI 职业师
       </h1>
-      <p className="text-lg text-gray-500 mb-8 max-w-xl mx-auto">
+      <p className="text-lg text-gray-500 mb-4 max-w-xl mx-auto">
         上传简历，粘贴目标岗位 JD，AI 自动分析匹配度、识别 ATS 风险、发现技能缺口，并生成专属学习路径。
       </p>
+      <p className="text-xs text-gray-400 mb-8">免费开始分析，无需登录</p>
 
       <Link
         href="/analyze"
@@ -22,7 +52,24 @@ export default function Home() {
         免费开始分析
       </Link>
 
-      <div className="flex flex-wrap justify-center gap-2 mt-6 max-w-xl mx-auto">
+      {/* Experience code entry */}
+      <div className="mt-6 flex justify-center">
+        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl px-4 py-3 inline-flex items-center gap-2 text-sm">
+          <span className="text-xs text-gray-500 shrink-0">🎁 有体验码？</span>
+          <input
+            type="text" value={guestCode} onChange={e => { setGuestCode(e.target.value); setRedeemMsg(""); }}
+            onKeyDown={e => e.key === "Enter" && handleRedeem()}
+            placeholder="输入体验码" className="px-2.5 py-1.5 bg-white border border-gray-200 rounded-lg text-xs w-36 focus:outline-none focus:ring-1 focus:ring-blue-500"
+          />
+          <button onClick={handleRedeem} disabled={redeeming}
+            className="px-3 py-1.5 bg-blue-600 text-white text-xs rounded-lg hover:bg-blue-700 disabled:opacity-40">
+            {redeeming ? "..." : "激活"}
+          </button>
+        </div>
+      </div>
+      {redeemMsg && <p className={`text-xs mt-2 ${redeemMsg.includes("成功") ? "text-emerald-500" : "text-red-500"}`}>{redeemMsg}</p>}
+
+      <div className="flex flex-wrap justify-center gap-2 mt-8 max-w-xl mx-auto">
         {hotSearches.map(tag => (
           <Link
             key={tag}
@@ -38,7 +85,7 @@ export default function Home() {
         <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
           <div className="text-2xl mb-2">&#x1F4CA;</div>
           <h3 className="font-semibold mb-1">AI 精准匹配</h3>
-          <p className="text-sm text-gray-500">DeepSeek 驱动的多维度简历与 JD 匹配度分析，覆盖技能、经验、学历。</p>
+          <p className="text-sm text-gray-500">AI 驱动的多维度简历与 JD 匹配度分析，覆盖技能、经验、学历。</p>
         </div>
         <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
           <div className="text-2xl mb-2">&#x1F6E1;</div>

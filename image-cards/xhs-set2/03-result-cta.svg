@@ -1,0 +1,66 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 1067">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#f0fdf4"/>
+      <stop offset="100%" stop-color="#fff"/>
+    </linearGradient>
+    <linearGradient id="proGrad" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#2563eb"/>
+      <stop offset="100%" stop-color="#1d4ed8"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="800" height="1067" fill="url(#bg)"/>
+
+  <!-- Top bar -->
+  <rect x="0" y="0" width="800" height="8" fill="#16a34a"/>
+
+  <!-- Header area -->
+  <text x="400" y="80" text-anchor="middle" font-family="'PingFang SC','Noto Sans SC',sans-serif" font-size="30" font-weight="900" fill="#16a34a">改完当天投 5 家</text>
+  <text x="400" y="150" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="96" font-weight="900" fill="#16a34a">3</text>
+  <text x="400" y="205" text-anchor="middle" font-family="'PingFang SC','Noto Sans SC',sans-serif" font-size="22" font-weight="700" fill="#166534">家直接约面试</text>
+
+  <line x1="250" y1="245" x2="550" y2="245" stroke="#bbf7d0" stroke-width="1.5"/>
+
+  <text x="400" y="285" text-anchor="middle" font-family="'PingFang SC','Noto Sans SC',sans-serif" font-size="15" font-weight="700" fill="#64748b">同一个经历，改完判若两人</text>
+
+  <!-- Before card -->
+  <rect x="60" y="320" width="680" height="110" rx="14" fill="#fef2f2" stroke="#fecaca" stroke-width="1.5"/>
+  <text x="100" y="350" font-family="'PingFang SC','Noto Sans SC',sans-serif" font-size="14" font-weight="700" fill="#991b1b">❌ 改之前</text>
+  <text x="100" y="385" font-family="'PingFang SC','Noto Sans SC',sans-serif" font-size="15" fill="#7f1d1d">"负责社群运营，在群里发内容和优惠券"</text>
+  <text x="100" y="410" font-family="'PingFang SC','Noto Sans SC',sans-serif" font-size="12" fill="#b91c1c">没有数据 / 没有关键词 / 动词太弱</text>
+
+  <!-- Arrow -->
+  <line x1="400" y1="450" x2="400" y2="500" stroke="#94a3b8" stroke-width="2"/>
+  <polygon points="400,508 392,494 408,494" fill="#94a3b8"/>
+
+  <!-- After card -->
+  <rect x="60" y="525" width="680" height="200" rx="14" fill="white" stroke="#2563eb" stroke-width="2"/>
+  <rect x="60" y="525" width="680" height="44" rx="14" fill="url(#proGrad)"/>
+  <rect x="60" y="551" width="680" height="18" fill="url(#proGrad)"/>
+  <text x="400" y="553" text-anchor="middle" font-family="'PingFang SC','Noto Sans SC',sans-serif" font-size="16" font-weight="700" fill="white">✅ 改之后</text>
+
+  <text x="100" y="608" font-family="'PingFang SC','Noto Sans SC',sans-serif" font-size="15" font-weight="600" fill="#1e293b">"主导 3 个 500 人微信社群运营，策划日更内容和</text>
+  <text x="100" y="638" font-family="'PingFang SC','Noto Sans SC',sans-serif" font-size="15" font-weight="600" fill="#1e293b"> 周度优惠活动，月均触达 3000+ 用户，</text>
+  <text x="100" y="668" font-family="'PingFang SC','Noto Sans SC',sans-serif" font-size="15" font-weight="600" fill="#1e293b"> 社群活跃度维持在 60% 以上。"</text>
+
+  <rect x="100" y="692" width="90" height="22" rx="6" fill="#dcfce7"/>
+  <text x="145" y="707" text-anchor="middle" font-family="'PingFang SC','Noto Sans SC',sans-serif" font-size="11" fill="#16a34a">✅ STAR 重构</text>
+  <rect x="200" y="692" width="90" height="22" rx="6" fill="#dcfce7"/>
+  <text x="245" y="707" text-anchor="middle" font-family="'PingFang SC','Noto Sans SC',sans-serif" font-size="11" fill="#16a34a">✅ 数据量化</text>
+  <rect x="300" y="692" width="100" height="22" rx="6" fill="#dcfce7"/>
+  <text x="350" y="707" text-anchor="middle" font-family="'PingFang SC','Noto Sans SC',sans-serif" font-size="11" fill="#16a34a">✅ 关键词匹配</text>
+
+  <!-- Score ring -->
+  <circle cx="400" cy="820" r="55" fill="none" stroke="#e2e8f0" stroke-width="10"/>
+  <circle cx="400" cy="820" r="55" fill="none" stroke="#16a34a" stroke-width="10"
+    stroke-dasharray="311 34" stroke-dashoffset="0" stroke-linecap="round" transform="rotate(-90 400 820)"/>
+  <text x="400" y="813" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="36" font-weight="900" fill="#16a34a">85</text>
+  <text x="400" y="836" text-anchor="middle" font-family="'PingFang SC','Noto Sans SC',sans-serif" font-size="13" fill="#166534">ATS 匹配分</text>
+
+  <!-- CTA -->
+  <rect x="120" y="930" width="560" height="68" rx="16" fill="#2563eb"/>
+  <text x="400" y="962" text-anchor="middle" font-family="'PingFang SC','Noto Sans SC',sans-serif" font-size="16" font-weight="700" fill="white">🎁 免费用 AI 诊断你的简历 → ai-career.xyz</text>
+
+  <text x="400" y="1040" text-anchor="middle" font-family="'PingFang SC','Noto Sans SC',sans-serif" font-size="13" font-weight="600" fill="#1e293b">评论区扣 1，我私信发你体验码</text>
+</svg>
