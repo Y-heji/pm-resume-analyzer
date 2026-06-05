@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import PageTracker from "@/components/page-tracker";
@@ -17,8 +17,14 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+};
+
 export const metadata: Metadata = {
-  title: "AI PM 求职分析 | 简历匹配 · ATS 检测 · 学习路径",
+  title: "AI 职业师 | 简历匹配 · ATS 检测 · 模拟面试",
   description: "上传简历 + 粘贴 JD，AI 自动分析匹配度、ATS 风险、缺失技能，生成优化建议和学习路径。",
 };
 
