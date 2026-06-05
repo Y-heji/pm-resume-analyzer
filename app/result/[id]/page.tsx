@@ -219,6 +219,20 @@ export default function ResultPage() {
           <div className="mt-4">
             <DifficultyCard analysis={result.difficultyAnalysis} />
           </div>
+
+          {/* Learning Path */}
+          {result.learningPath.length > 0 && (
+            <div className="mt-4">
+              <LearningPath steps={result.learningPath} />
+            </div>
+          )}
+
+          {/* Recommended Jobs */}
+          {result.recommendedJobs?.length > 0 && (
+            <div className="mt-4">
+              <RecommendedJobs jobs={result.recommendedJobs} currentRole={result.resumeDigest?.currentRole} />
+            </div>
+          )}
         </>
       ) : (
         /* ── Paid Tier: full tabs ── */

@@ -245,6 +245,18 @@ export default function MembershipPage() {
         </div>
       )}
 
+      {/* Contact */}
+      <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden mb-6">
+        <div className="p-6">
+          <h2 className="text-sm font-semibold text-gray-900 mb-3">联系客服</h2>
+          <div className="space-y-2 text-sm">
+            <div className="flex justify-between"><span className="text-gray-500">微信</span><span className="text-gray-800">Xu--Fengnian</span></div>
+            <div className="flex justify-between"><span className="text-gray-500">邮箱</span><a href="mailto:2014761579@qq.com" className="text-blue-600">2014761579@qq.com</a></div>
+            <div className="flex justify-between"><span className="text-gray-500">工作时间</span><span className="text-gray-400 text-xs">09:00 - 21:00</span></div>
+          </div>
+        </div>
+      </div>
+
       {/* Back link */}
       <div className="mt-8 text-center">
         <a href="/" className="text-sm text-blue-600 hover:text-blue-700">

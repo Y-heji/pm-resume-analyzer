@@ -52,102 +52,82 @@ export default function RewritePage() {
     return () => clearInterval(timer);
   }, [phase]);
 
-  // Fetch rewrite
+  // Fetch rewrite (cached-first, no re-trigger on back nav)
   useEffect(() => {
-    let cleanup: (() => void) | undefined;
-    startRewrite();
+    let cancelled = false;
 
-    async function startRewrite() {
+    // 1. Check sessionStorage cache FIRST — instant for back navigation
+    const cached = sessionStorage.getItem(`${id}_rewrite`);
+    if (cached) {
+      try { const data = JSON.parse(cached); setResult(data); setPhase("result"); return; } catch {}
+    }
+
+    // 2. Check server cache
+    const ctrl = new AbortController();
+    const timeout = setTimeout(() => ctrl.abort(), 8000);
+
+    fetch(`/api/rewrite/${id}`, { signal: ctrl.signal })
+      .then(r => r.ok ? r.json() : Promise.reject())
+      .then(data => {
+        if (cancelled) return;
+        clearTimeout(timeout);
+        setResult(data); setPhase("result");
+        sessionStorage.setItem(`${id}_rewrite`, JSON.stringify(data));
+      })
+      .catch(() => {
+        if (cancelled) return;
+        clearTimeout(timeout);
+        doRewrite(); // 3. Fresh rewrite
+      });
+
+    async function doRewrite() {
       let resumeText = sessionStorage.getItem(`${id}_resume`);
       let jdText = sessionStorage.getItem(`${id}_jd`);
 
-      // If sessionStorage missing, recover from server
       if (!resumeText || !jdText) {
         try {
-          const [rRes, jRes] = await Promise.all([
-            fetch(`/api/analysis/${id}?field=resume`),
-            fetch(`/api/analysis/${id}?field=jd`),
+          const sctrl = new AbortController();
+          const st = setTimeout(() => sctrl.abort(), 8000);
+          const [r,j] = await Promise.all([
+            fetch(`/api/analysis/${id}?field=resume`,{signal:sctrl.signal}).then(r=>r.ok?r.json():null).catch(()=>null),
+            fetch(`/api/analysis/${id}?field=jd`,{signal:sctrl.signal}).then(r=>r.ok?r.json():null).catch(()=>null),
           ]);
-          if (rRes.ok) {
-            const r = await rRes.json();
-            resumeText = r.text;
-            sessionStorage.setItem(`${id}_resume`, r.text);
-          }
-          if (jRes.ok) {
-            const j = await jRes.json();
-            jdText = j.text;
-            sessionStorage.setItem(`${id}_jd`, j.text);
-          }
+          clearTimeout(st);
+          if (r?.text) { resumeText = r.text; sessionStorage.setItem(`${id}_resume`,r.text); }
+          if (j?.text) { jdText = j.text; sessionStorage.setItem(`${id}_jd`,j.text); }
         } catch {}
       }
 
-      if (!resumeText || !jdText) {
-        setError("未找到简历或 JD 数据，请返回重新分析");
-        setPhase("error");
-        return;
-      }
+      if (cancelled) return;
+      if (!resumeText || !jdText) { setError("未找到简历或 JD 数据"); setPhase("error"); return; }
 
-    // Check sessionStorage cache first
-    const cached = sessionStorage.getItem(`${id}_rewrite`);
-    if (cached) {
+      let deep = sessionStorage.getItem("unlocked")==="true";
+      if (!deep) { try { const r=sessionStorage.getItem(id); if(r) deep=!!(JSON.parse(r).deepAnalysis); } catch {} }
+
+      track("rewrite_start",{analysisId:id});
+      const rctrl = new AbortController();
+      const rt = setTimeout(()=>rctrl.abort(),60000);
+
       try {
-        const data = JSON.parse(cached);
-        setResult(data);
-        setPhase("result");
-        return;
-      } catch {}
-    }
-
-    // Then check server-side cache
-    try {
-      const res = await fetch(`/api/rewrite/${id}`);
-      if (res.ok) {
-        const data = await res.json();
-        setResult(data);
-        setPhase("result");
-        sessionStorage.setItem(`${id}_rewrite`, JSON.stringify(data));
-        return;
+        const res = await fetch("/api/rewrite",{
+          method:"POST",headers:{"Content-Type":"application/json"},
+          body:JSON.stringify({resumeText,jdText,deep}),signal:rctrl.signal
+        });
+        clearTimeout(rt);
+        if(!res.ok){const d=await res.json();throw new Error(d.error||"改写失败")}
+        const data:RewriteResult=await res.json();
+        if(cancelled)return;
+        setResult(data);setPhase("result");
+        sessionStorage.setItem(`${id}_rewrite`,JSON.stringify(data));
+        track("rewrite_complete",{analysisId:id,sectionCount:(data.modules||[]).length});
+      } catch(err){
+        clearTimeout(rt);
+        if(cancelled)return;
+        setError(err instanceof Error?err.message:"改写失败");setPhase("error");
       }
-    } catch {}
-
-    // No cache — do fresh rewrite
-    let deep = sessionStorage.getItem("unlocked") === "true";
-    if (!deep) {
-      try { const raw = sessionStorage.getItem(id); if (raw) deep = !!(JSON.parse(raw).deepAnalysis); } catch {}
     }
-    let cancelled = false;
-    const controller = new AbortController();
-    cleanup = () => { cancelled = true; controller.abort(); };
 
-    track("rewrite_start", { analysisId: id });
-
-    try {
-      const res = await fetch("/api/rewrite", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ resumeText: resumeText!, jdText: jdText!, deep }),
-        signal: controller.signal,
-      });
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error || "改写失败");
-      }
-      const data: RewriteResult = await res.json();
-      if (cancelled) return;
-      setResult(data);
-      setPhase("result");
-      sessionStorage.setItem(`${id}_rewrite`, JSON.stringify(data));
-      const moduleCount = (data.modules || data.sections || []).length;
-      track("rewrite_complete", { analysisId: id, sectionCount: moduleCount });
-      track("rewrite_preview_viewed", { analysisId: id, sectionCount: moduleCount });
-    } catch (err) {
-      if (cancelled) return;
-      setError(err instanceof Error ? err.message : "改写失败");
-      setPhase("error");
-    }
-    } // end startRewrite
-
-    return () => { if (cleanup) cleanup(); };
+    return () => { cancelled = true; ctrl.abort(); };
   }, [id]);
 
   // Track time on page when leaving

@@ -138,6 +138,21 @@ export default function UnlockCTA({ premiumCount }: Props) {
             <a href="/membership" className="mt-4 inline-flex items-center gap-1.5 text-xs text-blue-600 hover:text-blue-700 font-medium">
               查看完整权益 <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
             </a>
+
+            {/* Purchase more credits */}
+            <div className="mt-4 pt-4 border-t border-gray-100">
+              <p className="text-xs text-gray-500 mb-3">需要更多次数？输入兑换码或购买</p>
+              {/* Payment methods */}
+              <div className="flex gap-2 mb-3">
+                <button className="flex-1 py-2 bg-green-500 text-white text-xs font-medium rounded-lg opacity-60 cursor-not-allowed flex items-center justify-center gap-1" disabled title="即将上线">
+                  <span className="text-base">💚</span> 微信支付
+                </button>
+                <button className="flex-1 py-2 bg-blue-500 text-white text-xs font-medium rounded-lg opacity-60 cursor-not-allowed flex items-center justify-center gap-1" disabled title="即将上线">
+                  <span className="text-base">💙</span> 支付宝
+                </button>
+              </div>
+              <UnlockCodeInput />
+            </div>
           </div>
         </div>
       ) : user.status === "expired" ? (
@@ -168,6 +183,15 @@ export default function UnlockCTA({ premiumCount }: Props) {
                 <p className="text-[11px] text-gray-500">Word导出</p>
                 <p className="text-lg font-bold text-emerald-600">不限</p>
               </div>
+            </div>
+            {/* Payment methods */}
+            <div className="flex gap-2 mb-4">
+              <button className="flex-1 py-2 bg-green-500 text-white text-xs font-medium rounded-lg opacity-60 cursor-not-allowed flex items-center justify-center gap-1" disabled title="即将上线">
+                <span className="text-base">💚</span> 微信支付
+              </button>
+              <button className="flex-1 py-2 bg-blue-500 text-white text-xs font-medium rounded-lg opacity-60 cursor-not-allowed flex items-center justify-center gap-1" disabled title="即将上线">
+                <span className="text-base">💙</span> 支付宝
+              </button>
             </div>
             <UnlockCodeInput />
           </div>
@@ -232,12 +256,21 @@ export default function UnlockCTA({ premiumCount }: Props) {
                   立即解锁 — ￥19.9
                 </h4>
                 <p className="text-xs text-gray-500">
-                  微信/支付宝付款后获取解锁码。一次付费，永久使用。
+                  微信/支付宝付款后获取解锁码。（暂未开放，如需购买请联系客服）
                 </p>
               </div>
               <span className="text-xs px-2.5 py-1 bg-gray-900 text-white rounded-full font-medium">
                 AI优化×3 面试×3
               </span>
+            </div>
+            {/* Payment methods */}
+            <div className="flex gap-2 mb-4">
+              <button className="flex-1 py-2 bg-green-500 text-white text-xs font-medium rounded-lg opacity-60 cursor-not-allowed flex items-center justify-center gap-1" disabled title="即将上线">
+                <span className="text-base">💚</span> 微信支付
+              </button>
+              <button className="flex-1 py-2 bg-blue-500 text-white text-xs font-medium rounded-lg opacity-60 cursor-not-allowed flex items-center justify-center gap-1" disabled title="即将上线">
+                <span className="text-base">💙</span> 支付宝
+              </button>
             </div>
             <UnlockCodeInput />
           </div>
