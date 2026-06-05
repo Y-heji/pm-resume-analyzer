@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
@@ -46,7 +47,7 @@ export default function RootLayout({
           <AuthButton />
         </header>
         <PremiumBar />
-        <main className="flex-1"><PageTracker>{children}</PageTracker></main>
+        <main className="flex-1"><Suspense fallback={null}><PageTracker>{children}</PageTracker></Suspense></main>
         <Footer />
         <CsButton />
       </body>
