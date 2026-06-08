@@ -103,7 +103,7 @@ export default function AuthButton() {
                 <p className="text-sm font-medium text-gray-900 truncate">{user.email}</p>
                 {user.status === "active" && (
                   <div className="mt-1">
-                    <span className="text-[11px] px-1.5 py-0.5 bg-amber-100 text-amber-700 rounded-full font-medium">👑 专业版</span>
+                    <span className="text-[11px] px-1.5 py-0.5 bg-amber-100 text-amber-700 rounded-full font-medium">👑 {(() => { const labels: Record<string,string> = { job: "求职包", offer: "拿offer包" }; return user.tag ? (labels[user.tag] || "专业版") : "专业版"; })()}</span>
                     {user.activated_at && (
                       <span className="text-[10px] text-gray-400 ml-1">
                         激活于 {new Date(user.activated_at).toLocaleDateString("zh-CN")}

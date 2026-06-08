@@ -4,6 +4,14 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { track } from "@/lib/analytics";
 import { useUser } from "@/components/auth/use-user";
 
+const TIER_LABEL: Record<string, string> = { job: "求职包", offer: "拿offer包" };
+function tierName(tag: string | null): string { return (tag && TIER_LABEL[tag]) || "专业版"; }
+
+function scrollToContact() {
+  const el = document.getElementById("unlock-code-section");
+  if (el) { el.scrollIntoView({ behavior: "smooth", block: "center" }); el.classList.add("ring-2", "ring-amber-400"); setTimeout(() => el.classList.remove("ring-2", "ring-amber-400"), 2000); }
+}
+
 const FULL_VERSION_FEATURES = [
   { icon: "&#x1F4DD;", label: "完整项目经历 AI 重写" },
   { icon: "&#x1F3AF;", label: "ATS 关键词全面注入" },
@@ -109,7 +117,7 @@ export default function UnlockCTA({ premiumCount }: Props) {
             <div className="flex items-center gap-3 mb-6">
               <div className="w-12 h-12 rounded-2xl bg-amber-100 flex items-center justify-center text-2xl">👑</div>
               <div>
-                <h3 className="text-lg font-bold text-gray-900">专业版已激活</h3>
+                <h3 className="text-lg font-bold text-gray-900">{tierName(user.tag)}已激活</h3>
                 <p className="text-xs text-gray-500">
                   {user.activated_at
                     ? `激活于 ${new Date(user.activated_at).toLocaleDateString("zh-CN")}`
@@ -141,15 +149,18 @@ export default function UnlockCTA({ premiumCount }: Props) {
 
             {/* Purchase more credits */}
             <div className="mt-4 pt-4 border-t border-gray-100">
-              <p className="text-xs text-gray-500 mb-3">需要更多次数？输入兑换码或购买</p>
-              {/* Payment methods */}
-              <div className="flex gap-2 mb-3">
-                <button className="flex-1 py-2 bg-green-500 text-white text-xs font-medium rounded-lg opacity-60 cursor-not-allowed flex items-center justify-center gap-1" disabled title="即将上线">
-                  <span className="text-base">💚</span> 微信支付
-                </button>
-                <button className="flex-1 py-2 bg-blue-500 text-white text-xs font-medium rounded-lg opacity-60 cursor-not-allowed flex items-center justify-center gap-1" disabled title="即将上线">
-                  <span className="text-base">💙</span> 支付宝
-                </button>
+              <p className="text-xs text-gray-500 mb-3">需要更多次数？请联系客服购买</p>
+              <div className="grid grid-cols-2 gap-2 mb-3">
+                <div className="p-2 rounded-lg bg-amber-50 border border-amber-100 text-center">
+                  <p className="text-xs font-bold text-amber-700">🎯 求职包</p>
+                  <p className="text-[10px] text-gray-500">3优化+3面试</p>
+                  <p className="text-sm font-bold text-amber-600">¥29.9</p>
+                </div>
+                <div className="p-2 rounded-lg bg-orange-50 border border-orange-100 text-center">
+                  <p className="text-xs font-bold text-orange-700">🚀 拿offer包</p>
+                  <p className="text-[10px] text-gray-500">10优化+10面试</p>
+                  <p className="text-sm font-bold text-orange-600">¥49.9</p>
+                </div>
               </div>
               <UnlockCodeInput />
             </div>
@@ -162,7 +173,7 @@ export default function UnlockCTA({ premiumCount }: Props) {
             <div className="flex items-center gap-3 mb-6">
               <div className="w-12 h-12 rounded-2xl bg-gray-100 flex items-center justify-center text-2xl">⏰</div>
               <div>
-                <h3 className="text-lg font-bold text-gray-900">专业版已结束</h3>
+                <h3 className="text-lg font-bold text-gray-900">{tierName(user.tag)}已结束</h3>
                 <p className="text-xs text-gray-500">你的AI优化和面试次数已用完。PDF/Word导出仍可继续使用。</p>
               </div>
             </div>
@@ -184,14 +195,18 @@ export default function UnlockCTA({ premiumCount }: Props) {
                 <p className="text-lg font-bold text-emerald-600">不限</p>
               </div>
             </div>
-            {/* Payment methods */}
-            <div className="flex gap-2 mb-4">
-              <button className="flex-1 py-2 bg-green-500 text-white text-xs font-medium rounded-lg opacity-60 cursor-not-allowed flex items-center justify-center gap-1" disabled title="即将上线">
-                <span className="text-base">💚</span> 微信支付
-              </button>
-              <button className="flex-1 py-2 bg-blue-500 text-white text-xs font-medium rounded-lg opacity-60 cursor-not-allowed flex items-center justify-center gap-1" disabled title="即将上线">
-                <span className="text-base">💙</span> 支付宝
-              </button>
+            {/* Renew */}
+            <div className="grid grid-cols-2 gap-2 mb-4">
+              <div className="p-2 rounded-lg bg-amber-50 border border-amber-100 text-center">
+                <p className="text-xs font-bold text-amber-700">🎯 求职包</p>
+                <p className="text-[10px] text-gray-500">3优化+3面试</p>
+                <p className="text-sm font-bold text-amber-600">¥29.9</p>
+              </div>
+              <div className="p-2 rounded-lg bg-orange-50 border border-orange-100 text-center">
+                <p className="text-xs font-bold text-orange-700">🚀 拿offer包</p>
+                <p className="text-[10px] text-gray-500">10优化+10面试</p>
+                <p className="text-sm font-bold text-orange-600">¥49.9</p>
+              </div>
             </div>
             <UnlockCodeInput />
           </div>
@@ -248,31 +263,39 @@ export default function UnlockCTA({ premiumCount }: Props) {
             <GuestCodeInput />
           </div>
 
-          {/* Payment + Unlock */}
+          {/* Pricing cards */}
           <div className="border-t border-gray-100 p-6 md:p-8 bg-gradient-to-r from-gray-50 to-white">
-            <div className="flex items-center justify-between flex-wrap gap-4 mb-4">
-              <div>
-                <h4 className="text-sm font-bold text-gray-900 mb-0.5">
-                  立即解锁 — ￥19.9
-                </h4>
-                <p className="text-xs text-gray-500">
-                  微信/支付宝付款后获取解锁码。（暂未开放，如需购买请联系客服）
-                </p>
+            <h4 className="text-sm font-bold text-gray-900 mb-4">选择你的求职加速包</h4>
+
+            {/* Job tier */}
+            <div className="bg-white border border-amber-200 rounded-xl p-4 mb-3 hover:shadow-md transition-shadow">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-bold text-gray-900">🎯 求职包</span>
+                <span className="text-lg font-bold text-amber-600">￥29.9</span>
               </div>
-              <span className="text-xs px-2.5 py-1 bg-gray-900 text-white rounded-full font-medium">
-                AI优化×3 面试×3
-              </span>
-            </div>
-            {/* Payment methods */}
-            <div className="flex gap-2 mb-4">
-              <button className="flex-1 py-2 bg-green-500 text-white text-xs font-medium rounded-lg opacity-60 cursor-not-allowed flex items-center justify-center gap-1" disabled title="即将上线">
-                <span className="text-base">💚</span> 微信支付
-              </button>
-              <button className="flex-1 py-2 bg-blue-500 text-white text-xs font-medium rounded-lg opacity-60 cursor-not-allowed flex items-center justify-center gap-1" disabled title="即将上线">
-                <span className="text-base">💙</span> 支付宝
+              <p className="text-xs text-gray-500 mb-3">AI深度优化×3 + AI模拟面试×3 · 适合针对1-3个岗位优化</p>
+              <button onClick={scrollToContact} className="w-full py-2 bg-amber-500 text-white text-xs font-medium rounded-lg hover:bg-amber-600 transition-colors">
+                获取求职包
               </button>
             </div>
+
+            {/* Offer tier */}
+            <div className="bg-white border border-orange-300 rounded-xl p-4 mb-4 hover:shadow-md transition-shadow relative">
+              <span className="absolute -top-2 right-3 text-[10px] px-2 py-0.5 bg-orange-500 text-white rounded-full font-medium">推荐</span>
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-bold text-gray-900">🚀 拿offer包</span>
+                <span className="text-lg font-bold text-orange-600">￥49.9</span>
+              </div>
+              <p className="text-xs text-gray-500 mb-3">AI深度优化×10 + AI模拟面试×10 · 海投拿offer，反复练习</p>
+              <button onClick={scrollToContact} className="w-full py-2 bg-orange-500 text-white text-xs font-medium rounded-lg hover:bg-orange-600 transition-colors">
+                获取拿offer包
+              </button>
+            </div>
+
+            <p className="text-xs text-gray-400 text-center mb-3">添加客服微信获取兑换码，下方输入码后立即激活</p>
+            <div id="unlock-code-section" className="transition-all rounded-lg">
             <UnlockCodeInput />
+            </div>
           </div>
 
           {/* Waitlist Form */}
@@ -413,7 +436,7 @@ export default function UnlockCTA({ premiumCount }: Props) {
 function UnlockCodeInput() {
   const [code, setCode] = useState("");
   const [status, setStatus] = useState<"idle" | "success" | "error">("idle");
-  const [entitlements, setEntitlements] = useState<{ resume: number; interview: number } | null>(null);
+  const [entitlements, setEntitlements] = useState<{ resume: number; interview: number; tag: string | null } | null>(null);
 
   const handleUnlock = async () => {
     setStatus("idle");
@@ -431,6 +454,7 @@ function UnlockCodeInput() {
       setEntitlements({
         resume: data.resume_optimize_left || 3,
         interview: data.mock_interview_left || 3,
+        tag: data.tag || null,
       });
       setStatus("success");
     } catch {
@@ -443,8 +467,8 @@ function UnlockCodeInput() {
     return (
       <div className="bg-gradient-to-br from-amber-50 to-yellow-50 border border-amber-200 rounded-2xl p-6 text-center">
         <div className="text-3xl mb-3">🎉</div>
-        <h4 className="text-lg font-bold text-gray-900 mb-1">专业版已激活</h4>
-        <p className="text-xs text-gray-500 mb-4">你的账号已升级为专业版</p>
+        <h4 className="text-lg font-bold text-gray-900 mb-1">{tierName(entitlements.tag || null)}已激活</h4>
+        <p className="text-xs text-gray-500 mb-4">你的账号已升级</p>
 
         <div className="bg-white rounded-xl p-4 mb-5 text-left space-y-2">
           <div className="flex justify-between items-center">
@@ -472,7 +496,7 @@ function UnlockCodeInput() {
           }}
           className="w-full py-3 bg-gradient-to-r from-amber-500 to-orange-500 text-white font-bold rounded-xl hover:from-amber-600 hover:to-orange-600 transition-all text-sm shadow-lg shadow-amber-200"
         >
-          👉 进入专业版
+          👉 进入{tierName(entitlements.tag || null)}
         </button>
         <p className="text-[10px] text-gray-400 mt-2">刷新页面后，顶部将展示专业版标识和剩余次数</p>
       </div>

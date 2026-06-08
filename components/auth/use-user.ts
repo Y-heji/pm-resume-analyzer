@@ -9,6 +9,7 @@ export interface UserState {
   activated_at: string | null;
   resume_optimize_left: number;
   mock_interview_left: number;
+  tag: string | null;
   loading: boolean;
 }
 
@@ -17,7 +18,7 @@ let fetchPromise: Promise<UserState | null> | null = null;
 
 export function useUser(): UserState {
   const [user, setUser] = useState<UserState>(
-    cached || { email: "", status: "free", is_premium: false, activated_at: null, resume_optimize_left: 0, mock_interview_left: 0, loading: true }
+    cached || { email: "", status: "free", is_premium: false, activated_at: null, resume_optimize_left: 0, mock_interview_left: 0, tag: null, loading: true }
   );
 
   useEffect(() => {
@@ -34,6 +35,7 @@ export function useUser(): UserState {
             activated_at: d.activated_at || null,
             resume_optimize_left: d.resume_optimize_left || 0,
             mock_interview_left: d.mock_interview_left || 0,
+            tag: d.tag || null,
             loading: false,
           };
           cached = u;

@@ -31,6 +31,7 @@ export default function AdminPage() {
   const [genResume, setGenResume] = useState(3);
   const [genInterview, setGenInterview] = useState(3);
   const [genPrefix, setGenPrefix] = useState("PM");
+  const [genTag, setGenTag] = useState("job");
   const [guestGenCount, setGuestGenCount] = useState(5);
   const [guestGenResume, setGuestGenResume] = useState(1);
   const [guestGenInt, setGuestGenInt] = useState(1);
@@ -53,7 +54,7 @@ export default function AdminPage() {
     setGenLoading(true);
     const res = await fetch("/api/admin/codes/generate", {
       method: "POST", headers: codeHeaders,
-      body: JSON.stringify({ count: genCount, resumeOptimize: genResume, mockInterview: genInterview, prefix: genPrefix }),
+      body: JSON.stringify({ count: genCount, resumeOptimize: genResume, mockInterview: genInterview, prefix: genPrefix, tag: genTag }),
     });
     if (res.ok) { const d = await res.json(); setGenerated(d.codes || []); loadCodes(); }
     setGenLoading(false);
@@ -345,7 +346,13 @@ export default function AdminPage() {
         {/* Generate Paid */}
         <div className="bg-white rounded-2xl border border-gray-200 p-6 mb-6">
           <h2 className="text-sm font-bold mb-4">生成付费码</h2>
-          <div className="grid grid-cols-5 gap-3 mb-4">
+          <div className="grid grid-cols-6 gap-3 mb-4">
+            <div><label className="text-[10px] text-gray-500">套餐</label>
+              <select value={genTag} onChange={e => { setGenTag(e.target.value); if(e.target.value==="offer"){ setGenResume(10); setGenInterview(10); setGenPrefix("OFFER"); } else { setGenResume(3); setGenInterview(3); setGenPrefix("PM"); } }} className="w-full px-2 py-1.5 border rounded-lg text-xs">
+                <option value="job">求职包 ¥29.9</option>
+                <option value="offer">拿offer包 ¥49.9</option>
+              </select>
+            </div>
             <div><label className="text-[10px] text-gray-500">数量</label><input type="number" value={genCount} onChange={e => setGenCount(+e.target.value)} className="w-full px-2 py-1.5 border rounded-lg text-xs" /></div>
             <div><label className="text-[10px] text-gray-500">优化次数</label><input type="number" value={genResume} onChange={e => setGenResume(+e.target.value)} className="w-full px-2 py-1.5 border rounded-lg text-xs" /></div>
             <div><label className="text-[10px] text-gray-500">面试次数</label><input type="number" value={genInterview} onChange={e => setGenInterview(+e.target.value)} className="w-full px-2 py-1.5 border rounded-lg text-xs" /></div>
@@ -372,14 +379,17 @@ export default function AdminPage() {
           <div>
             <h2 className="text-sm font-bold mb-3">付费码  <span className="text-xs text-gray-400">({paidCodes.filter(c=>!c.used).length}可用/{paidCodes.length})</span></h2>
             <div className="space-y-1 max-h-80 overflow-y-auto">
-              {paidCodes.map((c,i) => (
+              {paidCodes.map((c,i) => {
+                const tierBadge = c.tag === "offer" ? "🚀" : c.tag === "job" ? "🎯" : "";
+                return (
                 <div key={i} className={`flex justify-between p-2 rounded-lg text-xs ${c.used?'bg-gray-50 text-gray-400':'bg-amber-50'}`}>
                   <button onClick={()=>navigator.clipboard.writeText(c.code)} className="font-mono hover:text-blue-600" title="点击复制">{c.code}</button>
                   <span className="flex items-center gap-2">
+                    {tierBadge && <span className="text-[10px]">{tierBadge}</span>}
                     <span>{c.used?(c.used_by?'已用:'+c.used_by:'已用'):(c.resume_optimize||0)+'优/'+(c.mock_interview||0)+'面'}</span>
                     <button onClick={(e)=>{e.stopPropagation();deleteCodes([c.code]);}} className="text-gray-400 hover:text-red-500 text-xs" title="删除">✕</button>
                   </span>
-                </div>))}
+                </div>)})}
             </div>
           </div>
           <div>

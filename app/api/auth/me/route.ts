@@ -13,5 +13,6 @@ export async function GET() {
     activated_at: e.activated_at,
     resume_optimize_left: e.resume_optimize_left,
     mock_interview_left: e.mock_interview_left,
+    tag: e.tag || null,
   });
 }

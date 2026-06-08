@@ -20,6 +20,7 @@ export async function POST(req: Request) {
       success: true,
       resume_optimize_left: redeem.resume_optimize,
       mock_interview_left: redeem.mock_interview,
+      tag: redeem.tag || null,
     });
   } catch (err: any) {
     return NextResponse.json({ error: "兑换失败：" + err.message }, { status: 500 });

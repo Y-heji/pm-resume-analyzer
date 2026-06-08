@@ -25,6 +25,7 @@ export default function InterviewPage() {
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [isDeep, setIsDeep] = useState(false);
+  const [tierLabel, setTierLabel] = useState<string>("");
   const [entitlementsChecked, setEntitlementsChecked] = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
 
@@ -51,6 +52,8 @@ export default function InterviewPage() {
       .then((d) => {
         if (d.email && d.mock_interview_left > 0) {
           setIsDeep(true);
+          const labels: Record<string, string> = { job: "求职包", offer: "拿offer包" };
+          setTierLabel(d.tag ? (labels[d.tag] || "专业版") : "专业版");
         } else if (d.email && d.is_premium) {
           // Premium with 0 credits left can still do free interview
           setIsDeep(false);
@@ -230,7 +233,7 @@ export default function InterviewPage() {
     <div className="max-w-2xl mx-auto px-6 py-4 flex flex-col h-screen">
       <div className="flex items-center justify-between mb-3 shrink-0">
         <button onClick={() => router.push(`/rewrite/${id}`)} className="text-sm text-gray-500 hover:text-gray-700">← 返回</button>
-        <span className="text-sm font-medium text-gray-700">模拟面试{tier === "paid" ? " · 专业版" : ""}</span>
+        <span className="text-sm font-medium text-gray-700">模拟面试{tier === "paid" ? ` · ${tierLabel}` : ""}</span>
         <span className="text-xs text-gray-400">{step}/{total}</span>
       </div>
 

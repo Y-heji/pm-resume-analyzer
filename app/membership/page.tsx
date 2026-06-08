@@ -8,6 +8,7 @@ interface Entitlements {
   activated_at: string | null;
   resume_optimize_left: number;
   mock_interview_left: number;
+  tag: string | null;
 }
 
 export default function MembershipPage() {
@@ -92,7 +93,7 @@ export default function MembershipPage() {
               <span className="text-sm text-gray-600">会员状态</span>
               {entitlements.is_premium ? (
                 <span className="inline-flex items-center gap-1 text-sm font-medium text-amber-700 bg-amber-50 px-2.5 py-1 rounded-full">
-                  👑 专业版已激活
+                  👑 {(() => { const l: Record<string,string> = { job: "求职包", offer: "拿offer包" }; return entitlements.tag ? (l[entitlements.tag] || "专业版") : "专业版"; })()}已激活
                 </span>
               ) : (
                 <span className="text-sm text-gray-400">免费用户</span>

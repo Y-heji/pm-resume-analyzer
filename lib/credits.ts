@@ -10,6 +10,16 @@ export interface Entitlements {
   activated_at: string | null;
   resume_optimize_left: number;
   mock_interview_left: number;
+  tag: string | null;  // "job" | "offer" | null (legacy)
+}
+
+export const TIER_PRESETS: Record<string, { label: string; price: number; resume: number; interview: number }> = {
+  job: { label: "求职包", price: 29.9, resume: 3, interview: 3 },
+  offer: { label: "拿offer包", price: 49.9, resume: 10, interview: 10 },
+};
+
+export function tierLabel(tag: string | null): string {
+  return TIER_PRESETS[tag || ""]?.label || "专业版";
 }
 
 // Derived flag: premium = was ever activated (doesn't mean currently active)
@@ -24,7 +34,7 @@ function logKey(email: string) { return `credit_log:${email}`; }
 
 export async function getEntitlements(email: string): Promise<Entitlements> {
   const data = await redis.get<Entitlements>(key(email));
-  return data || { status: "free", activated_at: null, resume_optimize_left: 0, mock_interview_left: 0 };
+  return data || { status: "free", activated_at: null, resume_optimize_left: 0, mock_interview_left: 0, tag: null };
 }
 
 async function setEntitlements(email: string, e: Entitlements): Promise<void> {
@@ -107,6 +117,7 @@ export async function consumeMockInterview(email: string): Promise<boolean> {
 export interface RedeemCode {
   resume_optimize: number;
   mock_interview: number;
+  tag: string | null;
   used: boolean;
   used_by: string | null;
   created_at: string;
@@ -136,6 +147,7 @@ export async function redeemCode(email: string, code: string): Promise<RedeemCod
   e.activated_at = e.activated_at || new Date().toISOString();
   e.resume_optimize_left += redeem.resume_optimize;
   e.mock_interview_left += redeem.mock_interview;
+  if (redeem.tag) e.tag = redeem.tag;
   await setEntitlements(email, e);
   await markCodeUsed(code, email);
 
@@ -145,12 +157,14 @@ export async function redeemCode(email: string, code: string): Promise<RedeemCod
 export async function createRedeemCodes(
   codes: string[],
   resumeOptimize: number,
-  mockInterview: number
+  mockInterview: number,
+  tag: string | null = null
 ): Promise<void> {
   for (const code of codes) {
     await redis.set(`redeem:${code}`, {
       resume_optimize: resumeOptimize,
       mock_interview: mockInterview,
+      tag,
       used: false,
       used_by: null,
       created_at: new Date().toISOString(),
