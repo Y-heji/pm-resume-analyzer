@@ -1,20 +1,37 @@
 {
-  "permissions": {
-    "allow": [
-      "Bash(npm *)",
-      "Bash(npx *)",
-      "Bash(git *)",
-      "Bash(rm *)",
-      "Bash(curl *)",
-      "Bash(mkdir *)",
-      "Bash(nslookup *)",
-      "Bash(explorer *)",
-      "Bash(pip *)",
-      "Bash(python *)",
-      "Bash(python3 *)",
-      "Bash(/e/软件/python *)",
-      "Bash(/e/软件/pip *)",
-      "Bash(winget *)"
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_PROJECT_DIR}/.cheat-hooks/prediction-immutability.sh\"",
+            "timeout": 5000
+          }
+        ]
+      },
+      {
+        "matcher": "Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_PROJECT_DIR}/.cheat-hooks/prediction-immutability.sh\"",
+            "timeout": 5000
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_PROJECT_DIR}/.cheat-hooks/session-start.sh\"",
+            "timeout": 5000
+          }
+        ]
+      }
     ]
   }
 }

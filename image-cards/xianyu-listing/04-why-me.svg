@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 800">
+  <defs>
+    <linearGradient id="bg4" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#eff6ff"/><stop offset="100%" stop-color="#fff"/></linearGradient>
+  </defs>
+  <rect width="800" height="800" fill="url(#bg4)"/>
+  <rect x="0" y="0" width="800" height="5" fill="#2563eb"/>
+
+  <text x="400" y="60" text-anchor="middle" font-family="'PingFang SC','Microsoft YaHei',sans-serif" font-size="30" font-weight="900" fill="#1e293b">为什么选我？</text>
+
+  <!-- Point 1 -->
+  <rect x="60" y="110" width="680" height="90" rx="14" fill="white" stroke="#e2e8f0"/>
+  <text x="100" y="148" font-family="sans-serif" font-size="32">🤖</text>
+  <text x="150" y="140" font-family="'PingFang SC','Microsoft YaHei',sans-serif" font-size="18" font-weight="700" fill="#1e293b">AI + 人工双重把关</text>
+  <text x="150" y="170" font-family="'PingFang SC','Microsoft YaHei',sans-serif" font-size="14" fill="#64748b">AI精准诊断 + 我人工复核润色，比纯AI更懂HR想看什么</text>
+
+  <!-- Point 2 -->
+  <rect x="60" y="220" width="680" height="90" rx="14" fill="white" stroke="#e2e8f0"/>
+  <text x="100" y="258" font-family="sans-serif" font-size="32">🎯</text>
+  <text x="150" y="250" font-family="'PingFang SC','Microsoft YaHei',sans-serif" font-size="18" font-weight="700" fill="#1e293b">专攻 ATS 机筛逻辑</text>
+  <text x="150" y="280" font-family="'PingFang SC','Microsoft YaHei',sans-serif" font-size="14" fill="#64748b">不是美化排版，是让机器系统读懂你 · JD关键词命中率从20%提到90%+</text>
+
+  <!-- Point 3 -->
+  <rect x="60" y="330" width="680" height="90" rx="14" fill="white" stroke="#e2e8f0"/>
+  <text x="100" y="368" font-family="sans-serif" font-size="32">📊</text>
+  <text x="150" y="360" font-family="'PingFang SC','Microsoft YaHei',sans-serif" font-size="18" font-weight="700" fill="#1e293b">数据说话</text>
+  <text x="150" y="390" font-family="'PingFang SC','Microsoft YaHei',sans-serif" font-size="14" fill="#64748b">交付时附带ATS诊断报告，看得见的提升 · 改前改后匹配分对比</text>
+
+  <!-- Point 4 -->
+  <rect x="60" y="440" width="680" height="90" rx="14" fill="white" stroke="#e2e8f0"/>
+  <text x="100" y="478" font-family="sans-serif" font-size="32">💬</text>
+  <text x="150" y="470" font-family="'PingFang SC','Microsoft YaHei',sans-serif" font-size="18" font-weight="700" fill="#1e293b">不止简历 · 面到拿offer</text>
+  <text x="150" y="500" font-family="'PingFang SC','Microsoft YaHei',sans-serif" font-size="14" fill="#64748b">含AI模拟面试 + 面试避坑指南 · 简历只是起点</text>
+
+  <!-- Point 5 -->
+  <rect x="60" y="550" width="680" height="90" rx="14" fill="white" stroke="#e2e8f0"/>
+  <text x="100" y="588" font-family="sans-serif" font-size="32">🔄</text>
+  <text x="150" y="580" font-family="'PingFang SC','Microsoft YaHei',sans-serif" font-size="18" font-weight="700" fill="#1e293b">改到满意为止</text>
+  <text x="150" y="610" font-family="'PingFang SC','Microsoft YaHei',sans-serif" font-size="14" fill="#64748b">交付后不满意？提需求，改到你点头</text>
+
+  <!-- Stats -->
+  <rect x="100" y="680" width="180" height="60" rx="12" fill="#2563eb" opacity="0.1"/>
+  <text x="190" y="710" text-anchor="middle" font-family="sans-serif" font-size="28" font-weight="900" fill="#2563eb">70%+</text>
+  <text x="190" y="730" text-anchor="middle" font-family="'PingFang SC','Microsoft YaHei',sans-serif" font-size="12" fill="#64748b">ATS机筛率</text>
+
+  <rect x="310" y="680" width="180" height="60" rx="12" fill="#16a34a" opacity="0.1"/>
+  <text x="400" y="710" text-anchor="middle" font-family="sans-serif" font-size="28" font-weight="900" fill="#16a34a">85+</text>
+  <text x="400" y="730" text-anchor="middle" font-family="'PingFang SC','Microsoft YaHei',sans-serif" font-size="12" fill="#64748b">匹配分提升</text>
+
+  <rect x="520" y="680" width="180" height="60" rx="12" fill="#f59e0b" opacity="0.1"/>
+  <text x="610" y="710" text-anchor="middle" font-family="sans-serif" font-size="28" font-weight="900" fill="#f59e0b">24h</text>
+  <text x="610" y="730" text-anchor="middle" font-family="'PingFang SC','Microsoft YaHei',sans-serif" font-size="12" fill="#64748b">交付初版</text>
+</svg>

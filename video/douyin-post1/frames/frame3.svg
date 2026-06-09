@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 1920">
+  <defs>
+    <linearGradient id="bg3" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0a0a14"/>
+      <stop offset="100%" stop-color="#0f172a"/>
+    </linearGradient>
+  </defs>
+  <rect width="1080" height="1920" fill="url(#bg3)"/>
+
+  <!-- Before -->
+  <text x="540" y="120" text-anchor="middle" font-family="'PingFang SC','Microsoft YaHei',sans-serif" font-size="40" font-weight="900" fill="#ef4444">改之前</text>
+
+  <rect x="140" y="170" width="800" height="180" rx="16" fill="#1c1917" stroke="#ef4444" stroke-width="2"/>
+  <text x="540" y="230" text-anchor="middle" font-family="'PingFang SC','Microsoft YaHei',sans-serif" font-size="32" fill="#fca5a5">"负责社群运营，在群里</text>
+  <text x="540" y="285" text-anchor="middle" font-family="'PingFang SC','Microsoft YaHei',sans-serif" font-size="32" fill="#fca5a5">发内容和优惠券"</text>
+
+  <text x="540" y="390" text-anchor="middle" font-family="'PingFang SC','Microsoft YaHei',sans-serif" font-size="80" font-weight="900" fill="#ef4444">ATS 20 分</text>
+
+  <!-- Arrow -->
+  <text x="540" y="520" text-anchor="middle" font-family="sans-serif" font-size="60" fill="#f59e0b">↓</text>
+  <text x="540" y="580" text-anchor="middle" font-family="'PingFang SC','Microsoft YaHei',sans-serif" font-size="28" fill="#f59e0b">AI 深度优化</text>
+
+  <!-- After -->
+  <text x="540" y="700" text-anchor="middle" font-family="'PingFang SC','Microsoft YaHei',sans-serif" font-size="40" font-weight="900" fill="#22c55e">改之后</text>
+
+  <rect x="80" y="750" width="920" height="300" rx="16" fill="#0d2a15" stroke="#22c55e" stroke-width="2"/>
+  <text x="540" y="830" text-anchor="middle" font-family="'PingFang SC','Microsoft YaHei',sans-serif" font-size="30" fill="#bbf7d0">"主导 3 个 500 人微信社群运营</text>
+  <text x="540" y="885" text-anchor="middle" font-family="'PingFang SC','Microsoft YaHei',sans-serif" font-size="30" fill="#bbf7d0">策划日更内容和周度优惠活动</text>
+  <text x="540" y="940" text-anchor="middle" font-family="'PingFang SC','Microsoft YaHei',sans-serif" font-size="30" fill="#bbf7d0">月均触达 3000+ 用户</text>
+  <text x="540" y="995" text-anchor="middle" font-family="'PingFang SC','Microsoft YaHei',sans-serif" font-size="30" fill="#bbf7d0">社群活跃度 60% 以上"</text>
+
+  <text x="540" y="1110" text-anchor="middle" font-family="'PingFang SC','Microsoft YaHei',sans-serif" font-size="80" font-weight="900" fill="#22c55e">ATS 80+ 分</text>
+
+  <!-- Result -->
+  <text x="540" y="1320" text-anchor="middle" font-family="'PingFang SC','Microsoft YaHei',sans-serif" font-size="44" font-weight="900" fill="#22c55e">改完投 5 家 → 3 家约面试 🎉</text>
+  <text x="540" y="1400" text-anchor="middle" font-family="'PingFang SC','Microsoft YaHei',sans-serif" font-size="32" fill="#888">同一个经历，判若两人</text>
+</svg>

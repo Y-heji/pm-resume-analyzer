@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 1920">
+  <defs>
+    <linearGradient id="bg4" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0f172a"/>
+      <stop offset="100%" stop-color="#1e3a5f"/>
+    </linearGradient>
+    <linearGradient id="cta4" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#3b82f6"/>
+      <stop offset="100%" stop-color="#2563eb"/>
+    </linearGradient>
+    <filter id="glow4"><feGaussianBlur stdDeviation="20"/></filter>
+  </defs>
+  <rect width="1080" height="1920" fill="url(#bg4)"/>
+
+  <circle cx="540" cy="600" r="350" fill="#3b82f6" opacity="0.08" filter="url(#glow4)"/>
+
+  <!-- Main CTA text -->
+  <text x="540" y="650" text-anchor="middle" font-family="'PingFang SC','Microsoft YaHei',sans-serif" font-size="72" font-weight="900" fill="#ffffff">你的简历</text>
+  <text x="540" y="780" text-anchor="middle" font-family="'PingFang SC','Microsoft YaHei',sans-serif" font-size="72" font-weight="900" fill="#60a5fa">能打几分？</text>
+
+  <!-- CTA Button -->
+  <rect x="240" y="1000" width="600" height="100" rx="50" fill="url(#cta4)"/>
+  <text x="540" y="1062" text-anchor="middle" font-family="'PingFang SC','Microsoft YaHei',sans-serif" font-size="42" font-weight="900" fill="#ffffff" letter-spacing="4">免费诊断</text>
+
+  <!-- Sub CTA -->
+  <text x="540" y="1200" text-anchor="middle" font-family="'PingFang SC','Microsoft YaHei',sans-serif" font-size="32" fill="#94a3b8">来主页 · 3 分钟出诊断报告</text>
+
+  <!-- Features -->
+  <text x="540" y="1350" text-anchor="middle" font-family="'PingFang SC','Microsoft YaHei',sans-serif" font-size="28" fill="#64748b">📊 ATS匹配分 · ⚠️ 风险项 · 🔍 技能缺口</text>
+  <text x="540" y="1420" text-anchor="middle" font-family="'PingFang SC','Microsoft YaHei',sans-serif" font-size="28" fill="#64748b">🤖 AI模拟面试 · ✏️ 简历深度优化</text>
+
+  <!-- URL -->
+  <text x="540" y="1620" text-anchor="middle" font-family="'PingFang SC','Microsoft YaHei',sans-serif" font-size="30" fill="#60a5fa" font-weight="700">ai职业经理师.xyz</text>
+</svg>

@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 800">
+  <defs>
+    <linearGradient id="bg1" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#1e3a5f"/>
+      <stop offset="100%" stop-color="#0f1a2e"/>
+    </linearGradient>
+    <linearGradient id="gold" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#f59e0b"/>
+      <stop offset="100%" stop-color="#fbbf24"/>
+    </linearGradient>
+    <filter id="glow"><feGaussianBlur stdDeviation="20"/></filter>
+  </defs>
+  <rect width="800" height="800" fill="url(#bg1)"/>
+  <circle cx="400" cy="300" r="250" fill="#f59e0b" opacity="0.08" filter="url(#glow)"/>
+
+  <!-- Top badge -->
+  <rect x="250" y="60" width="300" height="36" rx="18" fill="#f59e0b" opacity="0.15"/>
+  <text x="400" y="84" text-anchor="middle" font-family="'PingFang SC','Microsoft YaHei',sans-serif" font-size="14" fill="#fbbf24">AI 职业经理师 · 简历优化</text>
+
+  <!-- Main title -->
+  <text x="400" y="200" text-anchor="middle" font-family="'PingFang SC','Microsoft YaHei',sans-serif" font-size="46" font-weight="900" fill="#ffffff" letter-spacing="3">简历石沉大海？</text>
+  <text x="400" y="270" text-anchor="middle" font-family="'PingFang SC','Microsoft YaHei',sans-serif" font-size="38" font-weight="700" fill="#fbbf24" letter-spacing="2">我帮你过 ATS 第一关</text>
+
+  <!-- 3 selling points -->
+  <rect x="120" y="340" width="560" height="52" rx="10" fill="white" opacity="0.08"/>
+  <text x="400" y="373" text-anchor="middle" font-family="'PingFang SC','Microsoft YaHei',sans-serif" font-size="20" fill="#ffffff">📊 AI 深度诊断简历问题 + 打分</text>
+
+  <rect x="120" y="405" width="560" height="52" rx="10" fill="white" opacity="0.08"/>
+  <text x="400" y="438" text-anchor="middle" font-family="'PingFang SC','Microsoft YaHei',sans-serif" font-size="20" fill="#ffffff">✏️ STAR 法则重写 + ATS 关键词注入</text>
+
+  <rect x="120" y="470" width="560" height="52" rx="10" fill="white" opacity="0.08"/>
+  <text x="400" y="503" text-anchor="middle" font-family="'PingFang SC','Microsoft YaHei',sans-serif" font-size="20" fill="#ffffff">🎤 AI 模拟面试练习 + 诊断报告</text>
+
+  <!-- CTA -->
+  <rect x="200" y="580" width="400" height="60" rx="30" fill="url(#gold)"/>
+  <text x="400" y="618" text-anchor="middle" font-family="'PingFang SC','Microsoft YaHei',sans-serif" font-size="22" font-weight="900" fill="#1e3a5f">拍下即改 · 24h 交付</text>
+
+  <!-- Bottom info -->
+  <text x="400" y="680" text-anchor="middle" font-family="'PingFang SC','Microsoft YaHei',sans-serif" font-size="14" fill="#64748b">AI深度诊断 + 人工复核 · 改到满意为止</text>
+  <text x="400" y="720" text-anchor="middle" font-family="'PingFang SC','Microsoft YaHei',sans-serif" font-size="14" fill="#64748b">适合求职/跳槽/转行 · 支持运营/产品/数分等岗位</text>
+
+  <rect x="0" y="760" width="800" height="40" fill="#0a1220"/>
+  <text x="400" y="786" text-anchor="middle" font-family="'PingFang SC','Microsoft YaHei',sans-serif" font-size="12" fill="#475569">下单后发送简历 · 48小时满意交付 · 支持修改</text>
+</svg>

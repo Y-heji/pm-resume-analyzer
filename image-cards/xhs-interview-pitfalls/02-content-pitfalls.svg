@@ -1,0 +1,78 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 1067">
+  <defs>
+    <linearGradient id="bg2" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#111118"/>
+      <stop offset="100%" stop-color="#0a0a10"/>
+    </linearGradient>
+    <filter id="shadow2">
+      <feDropShadow dx="0" dy="3" stdDeviation="6" flood-color="#000" flood-opacity="0.4"/>
+    </filter>
+  </defs>
+
+  <rect width="800" height="1067" fill="url(#bg2)"/>
+
+  <!-- Top accent -->
+  <rect x="0" y="0" width="800" height="4" fill="#ff4444"/>
+
+  <!-- Title -->
+  <text x="400" y="80" text-anchor="middle" font-family="'PingFang SC','Microsoft YaHei','Noto Sans SC',sans-serif" font-size="38" font-weight="900" fill="#ffffff" letter-spacing="2">
+    AI 面试官曝光
+  </text>
+  <text x="400" y="125" text-anchor="middle" font-family="'PingFang SC','Microsoft YaHei','Noto Sans SC',sans-serif" font-size="28" font-weight="700" fill="#ff4444">
+    3 个致命回答
+  </text>
+
+  <!-- Divider -->
+  <line x1="330" y1="145" x2="470" y2="145" stroke="#ff4444" stroke-width="1.5" opacity="0.5"/>
+
+  <!-- Item 1 -->
+  <rect x="40" y="175" width="720" height="260" rx="16" fill="#1a1a28" stroke="#2a2a3a" stroke-width="1" filter="url(#shadow2)"/>
+  <text x="70" y="215" font-family="'PingFang SC','Microsoft YaHei','Noto Sans SC',sans-serif" font-size="48" font-weight="900" fill="#ff4444">01</text>
+
+  <!-- Wrong answer -->
+  <rect x="110" y="195" width="620" height="42" rx="8" fill="#2a1515"/>
+  <text x="130" y="223" font-family="'PingFang SC','Microsoft YaHei','Noto Sans SC',sans-serif" font-size="22" font-weight="700" fill="#ff4444">❌ "我没做过，但我可以学"</text>
+
+  <!-- Arrow -->
+  <text x="400" y="280" text-anchor="middle" font-family="'PingFang SC','Microsoft YaHei','Noto Sans SC',sans-serif" font-size="24" fill="#666">↓</text>
+
+  <!-- Correct answer -->
+  <rect x="110" y="300" width="620" height="42" rx="8" fill="#0d2a15"/>
+  <text x="130" y="328" font-family="'PingFang SC','Microsoft YaHei','Noto Sans SC',sans-serif" font-size="20" font-weight="600" fill="#22c55e">✅ "我自学过 XX，做了个小项目…"</text>
+
+  <!-- HR note -->
+  <text x="130" y="375" font-family="'PingFang SC','Microsoft YaHei','Noto Sans SC',sans-serif" font-size="15" fill="#666">HR 解读：没经验 ≠ 没自学成果，主动展示比被动承诺强 10 倍</text>
+
+  <!-- Item 2 -->
+  <rect x="40" y="460" width="720" height="260" rx="16" fill="#1a1a28" stroke="#2a2a3a" stroke-width="1" filter="url(#shadow2)"/>
+  <text x="70" y="500" font-family="'PingFang SC','Microsoft YaHei','Noto Sans SC',sans-serif" font-size="48" font-weight="900" fill="#ff4444">02</text>
+
+  <rect x="110" y="480" width="620" height="42" rx="8" fill="#2a1515"/>
+  <text x="130" y="508" font-family="'PingFang SC','Microsoft YaHei','Noto Sans SC',sans-serif" font-size="22" font-weight="700" fill="#ff4444">❌ "离职是因为领导不行"</text>
+
+  <text x="400" y="565" text-anchor="middle" font-family="'PingFang SC','Microsoft YaHei','Noto Sans SC',sans-serif" font-size="24" fill="#666">↓</text>
+
+  <rect x="110" y="585" width="620" height="42" rx="8" fill="#0d2a15"/>
+  <text x="130" y="613" font-family="'PingFang SC','Microsoft YaHei','Noto Sans SC',sans-serif" font-size="20" font-weight="600" fill="#22c55e">✅ "希望有更多 XX 方向的成长空间"</text>
+
+  <text x="130" y="660" font-family="'PingFang SC','Microsoft YaHei','Noto Sans SC',sans-serif" font-size="15" fill="#666">HR 解读：吐槽前司 = 情商红灯；说成长方向 = 你是解决问题的人</text>
+
+  <!-- Item 3 -->
+  <rect x="40" y="745" width="720" height="260" rx="16" fill="#1a1a28" stroke="#2a2a3a" stroke-width="1" filter="url(#shadow2)"/>
+  <text x="70" y="785" font-family="'PingFang SC','Microsoft YaHei','Noto Sans SC',sans-serif" font-size="48" font-weight="900" fill="#ff4444">03</text>
+
+  <rect x="110" y="765" width="620" height="42" rx="8" fill="#2a1515"/>
+  <text x="130" y="793" font-family="'PingFang SC','Microsoft YaHei','Noto Sans SC',sans-serif" font-size="22" font-weight="700" fill="#ff4444">❌ "薪资随缘吧 / 你们定"</text>
+
+  <text x="400" y="850" text-anchor="middle" font-family="'PingFang SC','Microsoft YaHei','Noto Sans SC',sans-serif" font-size="24" fill="#666">↓</text>
+
+  <rect x="110" y="870" width="620" height="42" rx="8" fill="#0d2a15"/>
+  <text x="130" y="898" font-family="'PingFang SC','Microsoft YaHei','Noto Sans SC',sans-serif" font-size="20" font-weight="600" fill="#22c55e">✅ "市场范围 XX-XX，结合我的经验"</text>
+
+  <text x="130" y="945" font-family="'PingFang SC','Microsoft YaHei','Noto Sans SC',sans-serif" font-size="15" fill="#666">HR 解读：不报价 = 不了解市场；给区间 + 理由 = 专业且清醒</text>
+
+  <!-- Bottom note -->
+  <text x="400" y="1045" text-anchor="middle" font-family="'PingFang SC','Microsoft YaHei','Noto Sans SC',sans-serif" font-size="16" fill="#666">
+    练过和没练过，HR 听得出来
+  </text>
+</svg>

@@ -1,0 +1,82 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 1067">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#1a1a2e"/>
+      <stop offset="100%" stop-color="#0f0f1a"/>
+    </linearGradient>
+    <linearGradient id="glow" x1="0.5" y1="0" x2="0.5" y2="1">
+      <stop offset="0%" stop-color="#ff4444" stop-opacity="0.3"/>
+      <stop offset="100%" stop-color="#ff4444" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="screenGlow" x1="0.5" y1="0.5" x2="0.5" y2="1">
+      <stop offset="0%" stop-color="#4a90d9" stop-opacity="0.6"/>
+      <stop offset="100%" stop-color="#4a90d9" stop-opacity="0.1"/>
+    </linearGradient>
+    <filter id="blur1">
+      <feGaussianBlur stdDeviation="8"/>
+    </filter>
+    <filter id="blur2">
+      <feGaussianBlur stdDeviation="30"/>
+    </filter>
+    <filter id="shadow">
+      <feDropShadow dx="0" dy="4" stdDeviation="8" flood-color="#000" flood-opacity="0.5"/>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="800" height="1067" fill="url(#bg)"/>
+
+  <!-- Ambient glow circles -->
+  <circle cx="400" cy="350" r="300" fill="url(#glow)" filter="url(#blur2)" opacity="0.5"/>
+  <circle cx="400" cy="600" r="200" fill="#ff4444" opacity="0.05" filter="url(#blur2)"/>
+
+  <!-- Interview room elements: door frame silhouette -->
+  <rect x="200" y="200" width="400" height="500" rx="12" fill="none" stroke="#333" stroke-width="1" opacity="0.3"/>
+
+  <!-- AI Screen / Portal -->
+  <rect x="260" y="250" width="280" height="350" rx="16" fill="url(#screenGlow)" filter="url(#blur1)" opacity="0.4"/>
+  <rect x="275" y="265" width="250" height="320" rx="12" fill="none" stroke="#4a90d9" stroke-width="2" opacity="0.6"/>
+
+  <!-- Abstract AI face / circuit lines on screen -->
+  <circle cx="400" cy="380" r="60" fill="none" stroke="#4a90d9" stroke-width="2" opacity="0.7"/>
+  <circle cx="400" cy="380" r="40" fill="none" stroke="#4a90d9" stroke-width="1" opacity="0.5"/>
+  <line x1="400" y1="410" x2="400" y2="470" stroke="#4a90d9" stroke-width="1.5" opacity="0.4"/>
+  <line x1="360" y1="440" x2="440" y2="440" stroke="#4a90d9" stroke-width="1.5" opacity="0.4"/>
+  <!-- Circuit dots -->
+  <circle cx="400" cy="380" r="4" fill="#4a90d9" opacity="0.9"/>
+  <circle cx="400" cy="470" r="3" fill="#4a90d9" opacity="0.6"/>
+
+  <!-- Silhouette figure facing screen -->
+  <ellipse cx="200" cy="420" rx="30" ry="50" fill="#1a1a2e" stroke="#333" stroke-width="1.5"/>
+  <circle cx="200" cy="350" r="22" fill="#1a1a2e" stroke="#333" stroke-width="1.5"/>
+  <!-- Silhouette eye highlight (reflecting screen) -->
+  <ellipse cx="208" cy="348" rx="3" ry="2" fill="#4a90d9" opacity="0.6"/>
+
+  <!-- Top accent bar -->
+  <rect x="0" y="0" width="800" height="4" fill="#ff4444"/>
+
+  <!-- Title Section -->
+  <text x="400" y="700" text-anchor="middle" font-family="'PingFang SC','Microsoft YaHei','Noto Sans SC',sans-serif" font-size="56" font-weight="900" fill="#ffffff" letter-spacing="2">
+    简历过了面试挂？
+  </text>
+  <text x="400" y="770" text-anchor="middle" font-family="'PingFang SC','Microsoft YaHei','Noto Sans SC',sans-serif" font-size="44" font-weight="700" fill="#ff4444" letter-spacing="4">
+    跟 AI 先练三遍
+  </text>
+
+  <!-- Divider -->
+  <line x1="300" y1="800" x2="500" y2="800" stroke="#ff4444" stroke-width="2" opacity="0.6"/>
+
+  <!-- Subtitle -->
+  <text x="400" y="840" text-anchor="middle" font-family="'PingFang SC','Microsoft YaHei','Noto Sans SC',sans-serif" font-size="18" fill="#888" letter-spacing="1">
+    AI 面试官曝光：这 3 个回答最致命
+  </text>
+
+  <!-- Bottom brand bar -->
+  <rect x="0" y="980" width="800" height="87" fill="#111" opacity="0.8"/>
+  <text x="400" y="1015" text-anchor="middle" font-family="'PingFang SC','Microsoft YaHei','Noto Sans SC',sans-serif" font-size="16" fill="#666" letter-spacing="2">
+    AI 职业经理师 · 模拟面试
+  </text>
+  <text x="400" y="1045" text-anchor="middle" font-family="'PingFang SC','Microsoft YaHei','Noto Sans SC',sans-serif" font-size="14" fill="#ff4444" letter-spacing="1">
+    来主页 · 免费测面试水平 →
+  </text>
+</svg>

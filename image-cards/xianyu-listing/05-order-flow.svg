@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 800">
+  <defs>
+    <linearGradient id="bg5" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#1e3a5f"/><stop offset="100%" stop-color="#0f1a2e"/></linearGradient>
+    <linearGradient id="gold5" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#f59e0b"/><stop offset="100%" stop-color="#fbbf24"/></linearGradient>
+  </defs>
+  <rect width="800" height="800" fill="url(#bg5)"/>
+
+  <text x="400" y="70" text-anchor="middle" font-family="'PingFang SC','Microsoft YaHei',sans-serif" font-size="32" font-weight="900" fill="#ffffff">下单流程</text>
+
+  <!-- Step 1 -->
+  <rect x="100" y="120" width="600" height="70" rx="14" fill="white" opacity="0.08"/>
+  <text x="140" y="163" font-family="sans-serif" font-size="28">①</text>
+  <text x="185" y="155" font-family="'PingFang SC','Microsoft YaHei',sans-serif" font-size="18" font-weight="700" fill="#ffffff">拍下商品</text>
+  <text x="185" y="178" font-family="'PingFang SC','Microsoft YaHei',sans-serif" font-size="13" fill="#94a3b8">选择你需要的套餐，直接拍下付款</text>
+
+  <!-- Arrow -->
+  <text x="400" y="225" text-anchor="middle" font-family="sans-serif" font-size="28" fill="#fbbf24">↓</text>
+
+  <!-- Step 2 -->
+  <rect x="100" y="255" width="600" height="70" rx="14" fill="white" opacity="0.08"/>
+  <text x="140" y="298" font-family="sans-serif" font-size="28">②</text>
+  <text x="185" y="290" font-family="'PingFang SC','Microsoft YaHei',sans-serif" font-size="18" font-weight="700" fill="#ffffff">发送简历</text>
+  <text x="185" y="313" font-family="'PingFang SC','Microsoft YaHei',sans-serif" font-size="13" fill="#94a3b8">闲鱼聊天发我简历文件 + 目标岗位 JD</text>
+
+  <!-- Arrow -->
+  <text x="400" y="360" text-anchor="middle" font-family="sans-serif" font-size="28" fill="#fbbf24">↓</text>
+
+  <!-- Step 3 -->
+  <rect x="100" y="390" width="600" height="70" rx="14" fill="white" opacity="0.08"/>
+  <text x="140" y="433" font-family="sans-serif" font-size="28">③</text>
+  <text x="185" y="425" font-family="'PingFang SC','Microsoft YaHei',sans-serif" font-size="18" font-weight="700" fill="#ffffff">AI 诊断 + 人工优化</text>
+  <text x="185" y="448" font-family="'PingFang SC','Microsoft YaHei',sans-serif" font-size="13" fill="#94a3b8">24小时内完成深度诊断和改写，交付初版</text>
+
+  <!-- Arrow -->
+  <text x="400" y="495" text-anchor="middle" font-family="sans-serif" font-size="28" fill="#fbbf24">↓</text>
+
+  <!-- Step 4 -->
+  <rect x="100" y="525" width="600" height="70" rx="14" fill="white" opacity="0.08"/>
+  <text x="140" y="568" font-family="sans-serif" font-size="28">④</text>
+  <text x="185" y="560" font-family="'PingFang SC','Microsoft YaHei',sans-serif" font-size="18" font-weight="700" fill="#ffffff">确认收货</text>
+  <text x="185" y="583" font-family="'PingFang SC','Microsoft YaHei',sans-serif" font-size="13" fill="#94a3b8">满意后确认收货 · 不满意提修改，改到你点头</text>
+
+  <!-- CTA -->
+  <rect x="180" y="650" width="440" height="60" rx="30" fill="url(#gold5)"/>
+  <text x="400" y="688" text-anchor="middle" font-family="'PingFang SC','Microsoft YaHei',sans-serif" font-size="24" font-weight="900" fill="#1e3a5f">拍下即改 · 24h 交付</text>
+
+  <text x="400" y="745" text-anchor="middle" font-family="'PingFang SC','Microsoft YaHei',sans-serif" font-size="13" fill="#64748b">有任何问题随时闲鱼私聊 · 看到秒回</text>
+
+  <rect x="0" y="770" width="800" height="30" fill="#0a1220"/>
+  <text x="400" y="792" text-anchor="middle" font-family="'PingFang SC','Microsoft YaHei',sans-serif" font-size="11" fill="#475569">AI 职业经理师 · 帮你过 ATS 第一关</text>
+</svg>

@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 800">
+  <defs>
+    <linearGradient id="bg2" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#f8fafc"/><stop offset="100%" stop-color="#fff"/></linearGradient>
+    <linearGradient id="pro" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#2563eb"/><stop offset="100%" stop-color="#3b82f6"/></linearGradient>
+  </defs>
+  <rect width="800" height="800" fill="url(#bg2)"/>
+  <rect x="0" y="0" width="800" height="5" fill="#2563eb"/>
+
+  <text x="400" y="65" text-anchor="middle" font-family="'PingFang SC','Microsoft YaHei',sans-serif" font-size="32" font-weight="900" fill="#1e293b">服务套餐</text>
+  <text x="400" y="100" text-anchor="middle" font-family="'PingFang SC','Microsoft YaHei',sans-serif" font-size="14" fill="#64748b">按需选择 · 下单即改</text>
+
+  <!-- Package 1 -->
+  <rect x="50" y="140" width="700" height="170" rx="16" fill="white" stroke="#e2e8f0" stroke-width="1.5"/>
+  <rect x="50" y="140" width="700" height="50" rx="16" fill="#f1f5f9"/>
+  <rect x="50" y="174" width="700" height="16" fill="#f1f5f9"/>
+  <text x="80" y="172" font-family="'PingFang SC','Microsoft YaHei',sans-serif" font-size="20" font-weight="700" fill="#1e293b">📄 简历深度诊断</text>
+  <text x="650" y="172" font-family="'PingFang SC','Microsoft YaHei',sans-serif" font-size="24" font-weight="900" fill="#2563eb">¥19.9</text>
+  <text x="80" y="215" font-family="'PingFang SC','Microsoft YaHei',sans-serif" font-size="15" fill="#475569">✅ ATS匹配分 + 风险项 + 技能缺口分析</text>
+  <text x="80" y="245" font-family="'PingFang SC','Microsoft YaHei',sans-serif" font-size="15" fill="#475569">✅ 1次AI深度改写（STAR+数据+关键词）</text>
+  <text x="80" y="275" font-family="'PingFang SC','Microsoft YaHei',sans-serif" font-size="15" fill="#475569">✅ 基础面试模拟 1 次</text>
+
+  <!-- Package 2 -->
+  <rect x="50" y="335" width="700" height="200" rx="16" fill="white" stroke="#f59e0b" stroke-width="2"/>
+  <rect x="50" y="335" width="700" height="50" rx="16" fill="url(#pro)"/>
+  <rect x="50" y="369" width="700" height="16" fill="url(#pro)"/>
+  <text x="80" y="367" font-family="'PingFang SC','Microsoft YaHei',sans-serif" font-size="20" font-weight="700" fill="white">🎯 求职加速包 · 推荐</text>
+  <text x="650" y="367" font-family="'PingFang SC','Microsoft YaHei',sans-serif" font-size="24" font-weight="900" fill="white">¥39.9</text>
+  <text x="80" y="425" font-family="'PingFang SC','Microsoft YaHei',sans-serif" font-size="15" fill="#1e293b">✅ 包含"简历深度诊断"全部内容</text>
+  <text x="80" y="455" font-family="'PingFang SC','Microsoft YaHei',sans-serif" font-size="15" fill="#1e293b">✅ 3次AI深度改写（针对不同岗位定制）</text>
+  <text x="80" y="485" font-family="'PingFang SC','Microsoft YaHei',sans-serif" font-size="15" fill="#1e293b">✅ 3次AI全真模拟面试 + 诊断报告</text>
+  <text x="80" y="515" font-family="'PingFang SC','Microsoft YaHei',sans-serif" font-size="15" fill="#1e293b">✅ PDF/Word 专业简历导出</text>
+
+  <!-- Package 3 -->
+  <rect x="50" y="560" width="700" height="170" rx="16" fill="white" stroke="#f97316" stroke-width="2"/>
+  <rect x="50" y="560" width="700" height="50" rx="16" fill="#fff7ed"/>
+  <rect x="50" y="594" width="700" height="16" fill="#fff7ed"/>
+  <text x="80" y="592" font-family="'PingFang SC','Microsoft YaHei',sans-serif" font-size="20" font-weight="700" fill="#c2410c">🚀 拿offer全包</text>
+  <text x="650" y="592" font-family="'PingFang SC','Microsoft YaHei',sans-serif" font-size="24" font-weight="900" fill="#f97316">¥69.9</text>
+  <text x="80" y="645" font-family="'PingFang SC','Microsoft YaHei',sans-serif" font-size="15" fill="#475569">✅ 10次深度改写 + 10次模拟面试</text>
+  <text x="80" y="675" font-family="'PingFang SC','Microsoft YaHei',sans-serif" font-size="15" fill="#475569">✅ 海投全岗位覆盖 · 改到拿offer为止</text>
+  <text x="80" y="705" font-family="'PingFang SC','Microsoft YaHei',sans-serif" font-size="15" fill="#475569">✅ 优先交付 + 无限修改</text>
+
+  <text x="400" y="775" text-anchor="middle" font-family="'PingFang SC','Microsoft YaHei',sans-serif" font-size="13" fill="#94a3b8">拍下后发送简历 + 岗位JD · 24小时内交付初版</text>
+</svg>
