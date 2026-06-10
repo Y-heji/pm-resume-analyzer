@@ -238,11 +238,12 @@ export default function InterviewGenPage() {
 
         <div className="mt-6 flex gap-3">
           <button onClick={() => {
-            const finalResume = resume?.finalResume;
             const resumeText = resume?.resumeText || "";
-            if (finalResume) {
-              sessionStorage.setItem("iv_finalResume", JSON.stringify(finalResume));
-            }
+            const jdText = resume?.selfEvaluation || "";
+            // Save in the format the rewrite page expects
+            sessionStorage.setItem(`${sessionId}_resume`, resumeText);
+            sessionStorage.setItem(`${sessionId}_jd`, jdText);
+            sessionStorage.setItem("iv_finalResume", JSON.stringify(resume?.finalResume || null));
             sessionStorage.setItem("iv_resumeText", resumeText);
             router.push("/rewrite/" + (sessionId || ""));
           }}
