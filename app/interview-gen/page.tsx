@@ -47,8 +47,47 @@ export default function InterviewGenPage() {
   const [tabIdx, setTabIdx] = useState(0);
   const chatEndRef = useRef<HTMLDivElement>(null);
 
-  // Initialize
+  // Persist state to sessionStorage on every stage change
+  const persistState = (sid: string, stg: Stage, data: any) => {
+    try {
+      sessionStorage.setItem("iv_session", JSON.stringify({
+        sessionId: sid, stage: stg,
+        basicInfo, careerTarget, experiences, projects, skills,
+        resume, recommendations, aiMessage, suggestions,
+      }));
+    } catch {}
+  };
+
+  // Restore from sessionStorage on mount
   useEffect(() => {
+    try {
+      const saved = sessionStorage.getItem("iv_session");
+      if (saved) {
+        const p = JSON.parse(saved);
+        if (p.sessionId && p.stage && p.stage !== "DONE") {
+          // Restore and re-fetch from server to get latest state
+          setSessionId(p.sessionId);
+          setStage(p.stage);
+          setBasicInfo(p.basicInfo || {});
+          setCareerTarget(p.careerTarget || {});
+          setExperiences(p.experiences || []);
+          setProjects(p.projects || []);
+          setSkills(p.skills || { hardSkills: [], certificates: "", languages: "" });
+          if (p.aiMessage) setAiMessage(p.aiMessage);
+          if (p.suggestions) setSuggestions(p.suggestions);
+          return;
+        }
+        if (p.sessionId && p.stage === "DONE" && p.resume) {
+          setSessionId(p.sessionId);
+          setStage("DONE");
+          setResume(p.resume);
+          setRecommendations(p.recommendations || []);
+          setBasicInfo(p.basicInfo || {});
+          setCareerTarget(p.careerTarget || {});
+          return;
+        }
+      }
+    } catch {}
     startSession();
   }, []);
 
@@ -90,12 +129,14 @@ export default function InterviewGenPage() {
     if (d.done) {
       setStage("SKILLS");
       setAiMessage("信息齐了！AI 正在生成你的简历...");
+      persistState(sessionId!, "SKILLS", {});
       handleGenerate();
       return;
     }
     if (d.stage) setStage(d.stage);
     if (d.message) setAiMessage(d.message);
     if (d.suggestions) setSuggestions(d.suggestions);
+    persistState(sessionId!, d.stage || stage, {});
   };
 
   const handleGenerate = async () => {
@@ -105,6 +146,11 @@ export default function InterviewGenPage() {
     setRecommendations(d.recommendations);
     setStage("DONE");
     setAiMessage("简历已生成！你可以继续优化或导出。");
+    // Persist DONE state
+    try {
+      sessionStorage.setItem("iv_resumeText", d.resume?.resumeText || "");
+      sessionStorage.setItem("iv_finalResume", JSON.stringify(d.resume?.finalResume || null));
+    } catch {}
   };
 
   const handleFollowup = async () => {
@@ -191,7 +237,15 @@ export default function InterviewGenPage() {
         )}
 
         <div className="mt-6 flex gap-3">
-          <button onClick={() => router.push(`/rewrite/${sessionId}`)}
+          <button onClick={() => {
+            const finalResume = resume?.finalResume;
+            const resumeText = resume?.resumeText || "";
+            if (finalResume) {
+              sessionStorage.setItem("iv_finalResume", JSON.stringify(finalResume));
+            }
+            sessionStorage.setItem("iv_resumeText", resumeText);
+            router.push("/rewrite/" + (sessionId || ""));
+          }}
             className="flex-1 py-3 bg-blue-600 text-white font-semibold rounded-xl hover:bg-blue-700 transition-colors text-sm">
             ✏️ 进入 AI 简历优化
           </button>
@@ -546,63 +600,184 @@ function SelectField({ label, value, onChange, options }: { label: string; value
 
 function ResumeView({ resume }: { resume: any }) {
   if (!resume) return <p className="text-sm text-gray-400">简历生成中...</p>;
+
+  const finalResume = resume.finalResume;
+  const ed = finalResume?.education || resume.education?.[0] || {};
+  const exp = finalResume?.sections?.find((s: any) => s.label === "工作经历")?.entries ||
+              resume.experiences?.map((e: any) => ({ title: `${e.title || ""} · ${e.company || ""}`, subtitle: e.time, bullets: e.bullets || [] })) || [];
+  const projEntries = finalResume?.sections?.find((s: any) => s.label === "项目经验")?.entries ||
+              resume.projects?.map((p: any) => ({ title: p.name, subtitle: [p.role, p.tools].filter(Boolean).join(" · "), bullets: p.results || [] })) || [];
+  const skills = finalResume?.skills || resume.skills || [];
+  const certs = Array.isArray(resume.certificates) ? resume.certificates : (resume.certificates ? [resume.certificates] : []);
+  const langs = Array.isArray(resume.languages) ? resume.languages : (resume.languages ? [resume.languages] : []);
+
+  const handleExportPDF = async () => {
+    try {
+      const r = await fetch("/api/export-pdf", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ finalResume, templateId: "swiss" }),
+      });
+      if (r.ok) {
+        const blob = await r.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url; a.download = "简历.pdf"; a.click();
+        URL.revokeObjectURL(url);
+        return;
+      }
+    } catch {}
+    window.print();
+  };
+
+  const handlePrint = () => window.print();
+
   return (
-    <div className="bg-white border border-gray-200 rounded-2xl p-6 space-y-5">
-      {/* Self evaluation */}
-      <section>
-        <h3 className="text-sm font-bold text-gray-900 mb-2">自我评价</h3>
-        <p className="text-sm text-gray-700 leading-relaxed">{resume.selfEvaluation}</p>
-      </section>
-      {/* Education */}
-      {resume.education?.length > 0 && (
-        <section>
-          <h3 className="text-sm font-bold text-gray-900 mb-2">教育经历</h3>
-          {resume.education.map((e: any, i: number) => (
-            <p key={i} className="text-sm text-gray-700">{e.school} · {e.major} · {e.degree} · {e.time}</p>
-          ))}
-        </section>
-      )}
-      {/* Experiences */}
-      {resume.experiences?.length > 0 && (
-        <section>
-          <h3 className="text-sm font-bold text-gray-900 mb-2">实习/工作经历</h3>
-          {resume.experiences.map((e: any, i: number) => (
-            <div key={i} className="mb-3">
-              <p className="text-sm font-semibold text-gray-800">{e.company} · {e.title}</p>
-              <p className="text-xs text-gray-400 mb-1">{e.time}</p>
-              <ul className="list-disc pl-4 text-sm text-gray-700 space-y-1">
-                {e.bullets?.map((b: string, j: number) => <li key={j}>{b}</li>)}
-              </ul>
-            </div>
-          ))}
-        </section>
-      )}
-      {/* Projects */}
-      {resume.projects?.length > 0 && (
-        <section>
-          <h3 className="text-sm font-bold text-gray-900 mb-2">项目经历</h3>
-          {resume.projects.map((p: any, i: number) => (
-            <div key={i} className="mb-2 text-sm text-gray-700">
-              <p className="font-semibold">{p.name}</p>
-              <p className="text-xs text-gray-400">{p.role} · {p.tools}</p>
-              <ul className="list-disc pl-4 text-sm text-gray-700">
-                {p.results?.map((r: string, j: number) => <li key={j}>{r}</li>)}
-              </ul>
-            </div>
-          ))}
-        </section>
-      )}
-      {/* Skills */}
-      <section>
-        <h3 className="text-sm font-bold text-gray-900 mb-2">技能 & 证书</h3>
-        <div className="flex flex-wrap gap-1.5">
-          {resume.skills?.map((s: string, i: number) => (
-            <span key={i} className="px-2.5 py-1 bg-gray-100 rounded-full text-xs text-gray-700">{s}</span>
-          ))}
+    <>
+      <style>{`
+        @media print {
+          body * { visibility: hidden; }
+          #resume-template, #resume-template * { visibility: visible; }
+          #resume-template { position: absolute; left: 0; top: 0; width: 210mm; }
+          @page { size: A4; margin: 0; }
+        }
+      `}</style>
+
+      <div className="flex gap-2 mb-4 print:hidden">
+        <button onClick={handleExportPDF} className="flex-1 py-2.5 bg-blue-600 text-white font-medium rounded-xl text-sm hover:bg-blue-700">
+          📥 导出 PDF
+        </button>
+        <button onClick={handlePrint} className="flex-1 py-2.5 bg-white border border-gray-300 text-gray-700 font-medium rounded-xl text-sm hover:bg-gray-50">
+          🖨️ 打印
+        </button>
+      </div>
+
+      {/* Resume Template */}
+      <div id="resume-template" className="bg-white border border-gray-300 shadow-lg rounded-none print:shadow-none print:border-none max-w-[210mm] mx-auto text-sm" style={{ fontFamily: "'PingFang SC','Microsoft YaHei','Noto Sans SC',sans-serif", color: "#1e293b", lineHeight: 1.7 }}>
+
+        {/* Header */}
+        <div className="px-10 pt-10 pb-6" style={{ borderBottom: "2px solid #2563eb" }}>
+          <h1 className="text-3xl font-bold tracking-wide" style={{ color: "#0f172a", letterSpacing: "0.05em" }}>
+            {finalResume?.header?.name || "简历"}
+          </h1>
+          <p className="text-sm mt-1.5" style={{ color: "#475569" }}>
+            {finalResume?.header?.role || ""}
+          </p>
+          <p className="text-xs mt-1" style={{ color: "#64748b" }}>
+            {finalResume?.header?.contact || ""}
+          </p>
         </div>
-        <p className="text-xs text-gray-500 mt-1">{resume.certificates?.join(" · ")}</p>
-      </section>
-    </div>
+
+        <div className="px-10 py-6 space-y-8">
+          {/* Self Evaluation */}
+          {(finalResume?.summary || resume.selfEvaluation) && (
+            <section>
+              <h2 className="text-base font-bold mb-3 tracking-wide" style={{ color: "#2563eb", textTransform: "uppercase", letterSpacing: "0.1em" }}>
+                自我评价
+              </h2>
+              <p className="text-sm leading-relaxed" style={{ color: "#334155" }}>
+                {finalResume?.summary || resume.selfEvaluation}
+              </p>
+            </section>
+          )}
+
+          {/* Experience */}
+          {exp.length > 0 && (
+            <section>
+              <h2 className="text-base font-bold mb-4 tracking-wide" style={{ color: "#2563eb", textTransform: "uppercase", letterSpacing: "0.1em" }}>
+                工作经历
+              </h2>
+              <div className="space-y-5">
+                {exp.map((e: any, i: number) => (
+                  <div key={i}>
+                    <div className="flex justify-between items-baseline mb-1.5 flex-wrap">
+                      <h3 className="text-sm font-bold" style={{ color: "#0f172a" }}>{e.title}</h3>
+                      <span className="text-xs" style={{ color: "#64748b" }}>{e.subtitle}</span>
+                    </div>
+                    <ul className="space-y-1.5" style={{ paddingLeft: "1.2rem", listStyleType: "disc" }}>
+                      {e.bullets?.map((b: string, j: number) => (
+                        <li key={j} className="text-sm" style={{ color: "#334155" }}>{b}</li>
+                      ))}
+                    </ul>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {/* Projects */}
+          {projEntries.length > 0 && (
+            <section>
+              <h2 className="text-base font-bold mb-4 tracking-wide" style={{ color: "#2563eb", textTransform: "uppercase", letterSpacing: "0.1em" }}>
+                项目经历
+              </h2>
+              <div className="space-y-5">
+                {projEntries.map((p: any, i: number) => (
+                  <div key={i}>
+                    <div className="flex justify-between items-baseline mb-1.5 flex-wrap">
+                      <h3 className="text-sm font-bold" style={{ color: "#0f172a" }}>{p.title}</h3>
+                      {p.subtitle && <span className="text-xs" style={{ color: "#64748b" }}>{p.subtitle}</span>}
+                    </div>
+                    <ul className="space-y-1.5" style={{ paddingLeft: "1.2rem", listStyleType: "disc" }}>
+                      {p.bullets?.map((r: string, j: number) => (
+                        <li key={j} className="text-sm" style={{ color: "#334155" }}>{r}</li>
+                      ))}
+                    </ul>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {/* Education */}
+          {ed.school && (
+            <section>
+              <h2 className="text-base font-bold mb-4 tracking-wide" style={{ color: "#2563eb", textTransform: "uppercase", letterSpacing: "0.1em" }}>
+                教育经历
+              </h2>
+              <div>
+                <div className="flex justify-between items-baseline flex-wrap">
+                  <h3 className="text-sm font-bold" style={{ color: "#0f172a" }}>{ed.school}</h3>
+                  <span className="text-xs" style={{ color: "#64748b" }}>{ed.year || ed.time || ""}</span>
+                </div>
+                <p className="text-sm mt-0.5" style={{ color: "#475569" }}>{ed.major} · {ed.degree}{ed.gpa ? " · GPA " + ed.gpa : ""}</p>
+              </div>
+            </section>
+          )}
+
+          {/* Skills */}
+          {(skills.length > 0 || certs.length > 0) && (
+            <section>
+              <h2 className="text-base font-bold mb-3 tracking-wide" style={{ color: "#2563eb", textTransform: "uppercase", letterSpacing: "0.1em" }}>
+                技能 & 证书
+              </h2>
+              {skills.length > 0 && (
+                <div className="flex flex-wrap gap-2 mb-3">
+                  {skills.map((s: string, i: number) => (
+                    <span key={i} className="px-3 py-1 text-xs rounded" style={{ background: "#eff6ff", color: "#1e40af", fontWeight: 500 }}>
+                      {s}
+                    </span>
+                  ))}
+                </div>
+              )}
+              {certs.length > 0 && (
+                <p className="text-xs" style={{ color: "#64748b" }}>证书：{certs.join(" · ")}</p>
+              )}
+              {langs.length > 0 && (
+                <p className="text-xs" style={{ color: "#64748b" }}>语言：{langs.join(" · ")}</p>
+              )}
+            </section>
+          )}
+        </div>
+
+        {/* Footer line */}
+        <div className="px-10 pb-8">
+          <div style={{ borderTop: "1px solid #e2e8f0", paddingTop: "1rem" }}>
+            <p className="text-xs" style={{ color: "#94a3b8" }}>由 AI 职业师自动生成 · ai职业经理师.xyz</p>
+          </div>
+        </div>
+      </div>
+    </>
   );
 }
 

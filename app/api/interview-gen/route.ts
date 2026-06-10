@@ -143,8 +143,8 @@ ${i + 1}. ${p.name}
 `).join("\n")}
 
 技能: ${session.skills.hardSkills.join(", ")}
-证书: ${session.skills.certificates.join(", ")}
-语言: ${session.skills.languages.join(", ")}
+证书: ${Array.isArray(session.skills.certificates) ? session.skills.certificates.join(", ") : (session.skills.certificates || "")}
+语言: ${Array.isArray(session.skills.languages) ? session.skills.languages.join(", ") : (session.skills.languages || "")}
 `;
 
   const prompt = `根据以下求职者信息，生成一份专业的求职简历。返回严格JSON格式。
@@ -170,8 +170,61 @@ ${dataSummary}
 
   const response = await callLLM(prompt, "你是一个资深HR和简历顾问。只返回JSON格式。");
   const match = response.match(/\{[\s\S]*\}/);
-  if (match) return JSON.parse(match[0]);
-  return null;
+  if (!match) return null;
+  const raw = JSON.parse(match[0]);
+
+  // Convert to FinalResume format for PDF export
+  const ed = raw.education?.[0] || {};
+  const certs = Array.isArray(raw.certificates) ? raw.certificates : (raw.certificates ? [raw.certificates] : []);
+  const langs = Array.isArray(raw.languages) ? raw.languages : (raw.languages ? [raw.languages] : []);
+
+  raw.finalResume = {
+    header: {
+      name: session.basicInfo.name || "",
+      role: session.careerTarget.role || "求职者",
+      contact: [ed.school, ed.major, certs[0], langs[0]].filter(Boolean).join(" · "),
+    },
+    summary: raw.selfEvaluation || "",
+    sections: [
+      ...(raw.experiences?.length > 0 ? [{
+        label: "工作经历",
+        entries: raw.experiences.map((e: any) => ({
+          title: `${e.title || ""} · ${e.company || ""}`,
+          subtitle: e.time || "",
+          bullets: e.bullets || [],
+        })),
+      }] : []),
+      ...(raw.projects?.length > 0 ? [{
+        label: "项目经验",
+        entries: raw.projects.map((p: any) => ({
+          title: p.name || "",
+          subtitle: [p.role, p.tools].filter(Boolean).join(" · "),
+          bullets: p.results || [],
+        })),
+      }] : []),
+    ].filter(s => s.entries.length > 0),
+    skills: raw.skills || [],
+    education: {
+      school: ed.school || "",
+      degree: ed.degree || "",
+      year: ed.time || "",
+    },
+  };
+
+  // Build plain-text resume for rewrite module
+  raw.resumeText = [
+    `# ${session.basicInfo.name || ""}`,
+    ed.school ? `## 教育经历\n${ed.school} · ${ed.major} · ${ed.degree} · ${ed.time || ""}` : "",
+    raw.experiences?.map((e: any) =>
+      `## ${e.company || ""} - ${e.title || ""} (${e.time || ""})\n${(e.bullets || []).map((b: string) => `- ${b}`).join("\n")}`
+    ).join("\n\n") || "",
+    raw.projects?.map((p: any) =>
+      `## 项目: ${p.name || ""}\n${(p.results || []).map((r: string) => `- ${r}`).join("\n")}`
+    ).join("\n\n") || "",
+    `## 技能\n${(raw.skills || []).join(" · ")}`,
+  ].filter(Boolean).join("\n\n");
+
+  return raw;
 }
 
 async function generateRecommendations(session: InterviewSession): Promise<any[]> {
@@ -284,7 +337,11 @@ export async function POST(req: Request) {
           return NextResponse.json({ stage: "PROJECTS", ok: true });
         }
         case "SKILLS": {
-          session.skills = data;
+          session.skills = {
+            hardSkills: data.hardSkills || [],
+            certificates: typeof data.certificates === "string" ? data.certificates.split(/[,，\s]+/).filter(Boolean) : (data.certificates || []),
+            languages: typeof data.languages === "string" ? data.languages.split(/[,，\s]+/).filter(Boolean) : (data.languages || []),
+          };
           await saveSession(id, session);
           return NextResponse.json({
             stage: "SKILLS",
