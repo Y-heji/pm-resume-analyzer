@@ -2,6 +2,7 @@ import OpenAI from "openai";
 import type { AnalysisResult } from "./types";
 import { extractJson } from "./json-utils";
 import { getAIClient } from "./ai-config";
+import { sanitizePrompt } from "./sanitize-prompt";
 
 let _client: OpenAI | null = null;
 
@@ -30,6 +31,8 @@ ${LEARNING_PATH_GUIDE}
 你必须严格返回 JSON 格式，不要输出任何 JSON 之外的内容，不要用 markdown 代码块包裹。`;
 
 function buildUserPrompt(resumeText: string, jdText: string, deep = false) {
+  const r = sanitizePrompt(resumeText);
+  const j = sanitizePrompt(jdText);
   const isShortJD = jdText.length < 60;
 
   if (isShortJD) {
@@ -37,10 +40,10 @@ function buildUserPrompt(resumeText: string, jdText: string, deep = false) {
 注意：用户只提供了岗位名称/简短描述，请根据该岗位的行业通用要求进行分析。
 
 === 简历内容 ===
-${resumeText}
+${r}
 
 === 目标岗位 ===
-${jdText}
+${j}
 
 返回的 JSON 结构如下（所有字段必填，根据岗位名称推断典型要求）：
 {
@@ -66,10 +69,10 @@ ${jdText}
   return `请分析以下简历和岗位JD，返回结构化JSON分析结果。
 
 === 简历内容 ===
-${resumeText}
+${r}
 
 === 岗位JD ===
-${jdText}
+${j}
 
 返回的 JSON 结构如下（所有字段必填）：
 {

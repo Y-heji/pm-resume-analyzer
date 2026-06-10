@@ -2,6 +2,7 @@ import OpenAI from "openai";
 import type { RewriteResult } from "./types";
 import { extractJson } from "./json-utils";
 import { getAIClient } from "./ai-config";
+import { sanitizePrompt } from "./sanitize-prompt";
 
 let _client: OpenAI | null = null;
 
@@ -82,6 +83,8 @@ const DEEP_SYSTEM_PROMPT = `你是一位诚实的简历优化顾问，帮助用�
 // ─── User Prompt ────────────────────────────────────────────────
 
 function buildRewritePrompt(resumeText: string, jdText: string, deep = false) {
+  const r = sanitizePrompt(resumeText);
+  const j = sanitizePrompt(jdText);
   const count = deep ? "10-16" : "8-15";
   let extra = "";
   if (!deep) {
@@ -90,10 +93,10 @@ function buildRewritePrompt(resumeText: string, jdText: string, deep = false) {
   return `增强以下简历。保留原有结构和顺序，只优化每条内容的表达质量。
 
 === 用户简历 ===
-${resumeText}
+${r}
 
 === 目标岗位JD ===
-${jdText}
+${j}
 
 逐条增强简历中的经历和描述（${count}条）。请确保覆盖简历中所有工作经历和项目经历，不要遗漏任何段落。姓名/电话/邮箱等基础信息放入finalResume.header，不放入modules。
 

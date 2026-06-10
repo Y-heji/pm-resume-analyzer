@@ -1,15 +1,26 @@
 import { NextResponse } from "next/server";
-import { redis } from "@/lib/auth";
+import { redis, getCurrentUser } from "@/lib/auth";
+
+async function isAuthorized(req: Request): Promise<boolean> {
+  const email = await getCurrentUser();
+  if (email) return true;
+  // Guest cookie check
+  const guestCookie = req.cookies.get("guest_trial")?.value;
+  if (guestCookie) return true;
+  return false;
+}
 
 export async function GET(
   req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  if (!(await isAuthorized(req))) {
+    return NextResponse.json({ error: "请先登录" }, { status: 401 });
+  }
   const { id } = await params;
   const url = new URL(req.url);
   const field = url.searchParams.get("field");
 
-  // Support fetching original texts for rewrite flow
   if (field === "resume") {
     const text = await redis.get<string>(`analysis:${id}:resume`);
     if (!text) return NextResponse.json({ error: "not found" }, { status: 404 });

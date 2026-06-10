@@ -69,8 +69,10 @@ export async function POST(req: Request) {
               return NextResponse.json({ error: "面试次数不足，请先兑换" }, { status: 403 });
             }
           }
-          // Not logged in and no guest cookie → still allow (capped by client-side
-          // sessionStorage, or the guest cookie will be set by redeem-guest route)
+          // Not logged in and no guest cookie → deny
+          if (!guestConsumed && !email) {
+            return NextResponse.json({ error: "深度面试需要先登录或激活体验码" }, { status: 403 });
+          }
         }
       }
 

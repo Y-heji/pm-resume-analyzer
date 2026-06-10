@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import nodemailer from "nodemailer";
-import { SignJWT, jwtVerify } from "jose";
+import { SignJWT } from "jose";
+import { redis } from "@/lib/auth";
 
 const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET || "pm-resume-jwt-2026-heji-secret-key");
 
@@ -19,9 +20,23 @@ export async function POST(req: Request) {
     }
 
     const normalized = email.toLowerCase().trim();
+
+    // Rate limit: max 3 per IP per 60s
+    const ip = req.headers.get("x-forwarded-for") || "unknown";
+    const rateKey = `ratelimit:sendcode:${ip}`;
+    const count = await redis.incr(rateKey);
+    if (count === 1) await redis.expire(rateKey, 60);
+    if (count > 3) return NextResponse.json({ error: "请求太频繁，请1分钟后重试" }, { status: 429 });
+
+    // Cooldown: same email can only request once per 60s
+    const cdKey = `cooldown:sendcode:${normalized}`;
+    if (await redis.get(cdKey)) {
+      return NextResponse.json({ error: "验证码已发送，请60秒后重试" }, { status: 429 });
+    }
+    await redis.set(cdKey, "1", { ex: 60 });
+
     const code = String(Math.floor(100000 + Math.random() * 900000));
 
-    // Encode code into a 5-min expiry JWT
     const codeToken = await new SignJWT({ email: normalized, code })
       .setProtectedHeader({ alg: "HS256" })
       .setExpirationTime("5min")

@@ -6,12 +6,16 @@ export async function GET(req: Request) {
   if (!checkAdminAuth(req)) return adminAuthError();
 
   try {
-    const keys = await redis.keys("guest_code:*");
+    let cursor: number = 0;
     const codes: any[] = [];
-    for (const k of keys) {
-      const data = await redis.get(k);
-      codes.push({ code: k.replace("guest_code:", ""), ...(data as any) });
-    }
+    do {
+      const [nextCursor, batch] = await redis.scan(cursor as any, { match: "guest_code:*", count: 100 });
+      cursor = Number(nextCursor);
+      for (const k of batch) {
+        const data = await redis.get(k);
+        codes.push({ code: k.replace("guest_code:", ""), ...(data as any) });
+      }
+    } while (cursor !== 0);
     return NextResponse.json({ codes });
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 });

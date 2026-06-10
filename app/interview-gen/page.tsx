@@ -141,9 +141,10 @@ export default function InterviewGenPage() {
     setLoading(true);
     setError(null);
     try {
+      const payload = { action, sessionId, ...data };
       const r = await fetch("/api/interview-gen", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action, sessionId, ...data }),
+        body: JSON.stringify(payload),
       });
       const d = await r.json();
       if (d.error) throw new Error(d.error);
@@ -155,6 +156,7 @@ export default function InterviewGenPage() {
   };
 
   const nextStage = async (stageData: any) => {
+    setAiMessage(""); // clear previous message
     const d = await callApi("next", { stage, data: stageData });
     if (!d) return;
     if (d.done) {
@@ -363,14 +365,33 @@ export default function InterviewGenPage() {
           if (stage === "BASIC_INFO") nextStage(basicInfo);
           else if (stage === "CAREER_TARGET") nextStage(careerTarget);
           else if (stage === "EXPERIENCE") {
-            if (experiences.length === 0 && !currentExp.company) {
+            // First: save current form if filled, otherwise use what's already added
+            const newExp = currentExp.company
+              ? { ...currentExp, id: experiences.length, followups: [], completed: true }
+              : null;
+            const allExps = newExp ? [...experiences, newExp] : experiences;
+            if (allExps.length === 0) {
               setError("请至少添加一段经历"); return;
             }
-            if (currentExp.company) addExperience();
-            nextStage({ experiences, finished: true });
+            if (newExp) {
+              setExperiences(allExps);
+              setCurrentExp({ company: "", role: "", duration: "", description: "" });
+              setFollowups([]);
+            }
+            // Send ALL experiences to API
+            const batchData: any = { experiences: allExps.map(e => ({ company: e.company, role: e.role, duration: e.duration, description: e.description })), finished: true };
+            nextStage(batchData);
           } else if (stage === "PROJECTS") {
-            if (currentProject.name) addProject();
-            nextStage({ projects, finished: true });
+            const newProj = currentProject.name
+              ? { ...currentProject, id: projects.length, followups: [], completed: true }
+              : null;
+            const allProjs = newProj ? [...projects, newProj] : projects;
+            if (newProj) {
+              setProjects(allProjs);
+              setCurrentProject({ name: "", background: "", role: "", tools: "", results: "" });
+            }
+            const pdata: any = { projects: allProjs.map(p => ({ name: p.name, background: p.background, role: p.role, tools: p.tools, results: p.results })), finished: true };
+            nextStage(pdata);
           } else if (stage === "SKILLS") {
             nextStage(skills);
           }
@@ -456,23 +477,29 @@ function StageExperience({ current, onChange, onAdd, experiences, followups, onF
         placeholder="你负责什么？做了什么？结果如何？（越具体越好）"
         value={current.description} onChange={e => onChange({ ...current, description: e.target.value })} />
 
-      {/* AI Followup trigger */}
+      {/* AI Followup — always visible when there's content */}
       {current.description.trim().length > 10 && (
-        <button onClick={onFollowup} disabled={followupLoading}
-          className="text-xs text-blue-600 hover:text-blue-700 font-medium">
-          {followupLoading ? "AI 追问生成中..." : "🤖 AI 追问 · STAR 补全"}
-        </button>
-      )}
-
-      {/* Followup display */}
-      {followups.length > 0 && (
-        <div className="bg-yellow-50 border border-yellow-100 rounded-xl p-3 space-y-2">
-          {followups.map((q: string, i: number) => (
-            <div key={i} className="flex items-start gap-2 text-sm text-yellow-800">
-              <span className="text-xs mt-0.5">💡</span>
-              <span>{q}</span>
+        <div className="space-y-2">
+          {followups.length === 0 && !followupLoading && (
+            <button onClick={onFollowup}
+              className="text-xs text-blue-600 hover:text-blue-700 font-medium">
+              🤖 AI 追问 · STAR 补全
+            </button>
+          )}
+          {followupLoading && (
+            <p className="text-xs text-blue-400">AI 追问生成中...</p>
+          )}
+          {followups.length > 0 && (
+            <div className="bg-yellow-50 border border-yellow-100 rounded-xl p-3 space-y-2">
+              <p className="text-xs font-semibold text-yellow-700 mb-1">💡 AI 追问 — 帮你补全细节</p>
+              {followups.map((q: string, i: number) => (
+                <div key={i} className="flex items-start gap-2 text-sm text-yellow-800">
+                  <span className="text-xs mt-0.5 shrink-0">{i + 1}.</span>
+                  <span>{q}</span>
+                </div>
+              ))}
             </div>
-          ))}
+          )}
         </div>
       )}
 

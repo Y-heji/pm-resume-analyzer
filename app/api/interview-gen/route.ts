@@ -194,7 +194,7 @@ ${i+1}. ${p.name}
   const finalExperiences = experiences.map(e => ({
     company: e.company,
     title: e.title,
-    time: e.duration,
+    time: e.time,
     bullets: (e.description + (e.followups.length ? "。" + e.followups.join("。") : ""))
       .split(/[。；;]/).map((b: string) => b.trim()).filter((b: string) => b.length > 4),
   }));
@@ -277,20 +277,28 @@ ${i+1}. ${p.name}
 }
 
 async function generateRecommendations(session: InterviewSession): Promise<any[]> {
-  const summary = `专业:${session.basicInfo.major} 学历:${session.basicInfo.degree} 技能:${session.skills.hardSkills.join(",")}`;
+  const bi = session.basicInfo;
+  const ct = session.careerTarget;
+  const exps = session.experiences.map(e => `${e.company} ${e.role}: ${e.description}`).join("; ");
+  const projs = session.projects.map(p => `${p.name}(${p.role},${p.tools}): ${p.results}`).join("; ");
 
-  const prompt = `根据求职者信息，推荐10个最适合的岗位方向。
+  const summary = [
+    `意向岗位: ${ct.role || "未指定"}`,
+    `意向行业: ${ct.industry || "未指定"}`,
+    `意向城市: ${ct.city || "未指定"}`,
+    `专业: ${bi.major} | 学历: ${bi.degree} | 学校: ${bi.school}`,
+    `技能: ${session.skills.hardSkills.join(", ")}`,
+    `工作经历: ${exps || "无"}`,
+    `项目经历: ${projs || "无"}`,
+  ].join("\n");
+
+  const prompt = `你是职业规划师。根据以下求职者完整信息，推荐10个最适合的岗位方向。
+优先匹配「意向岗位」，再根据专业/技能/经历拓展相关方向。
+
 ${summary}
 
-返回严格JSON数组，每个元素：
-{
-  "role": "岗位名称",
-  "industry": "推荐行业",
-  "score": 85,  // 匹配度0-100
-  "reason": "推荐原因（20字以内）",
-  "gaps": ["需补充的能力1"]
-}
-只返回JSON数组，不需要其他文字。`;
+返回JSON数组：[{"role":"岗位","industry":"行业","score":85,"reason":"20字推荐原因","gaps":["需补能力"]}]
+规则：score基于真实匹配度，不要全给高分。岗位名要具体，不要泛泛而写"产品经理"要写成"B端产品经理"等。`;
 
   const response = await callLLM(prompt, "你是一个职业规划师。只返回JSON数组。");
   const match = response.match(/\[[\s\S]*\]/);
@@ -351,12 +359,13 @@ export async function POST(req: Request) {
           });
         }
         case "EXPERIENCE": {
-          if (data.experience) {
+          // Accept single or batch
+          const expList = data.experiences || (data.experience ? [data.experience] : []);
+          for (const exp of expList) {
             session.experiences.push({
               id: session.experiences.length,
-              ...data.experience,
-              followups: [],
-              completed: !data.needFollowup,
+              company: exp.company, role: exp.role, duration: exp.duration, description: exp.description,
+              followups: [], completed: true,
             });
           }
           if (data.finished) {
@@ -364,15 +373,20 @@ export async function POST(req: Request) {
             await saveSession(id, session);
             return NextResponse.json({
               stage: "PROJECTS",
-              message: "经历已记录。有项目经历要补充吗？比如课程设计、比赛项目、个人作品。",
+              message: expList.length > 0 ? `已记录 ${session.experiences.length} 段经历。有项目经历要补充吗？` : "有项目经历要补充吗？比如课程设计、比赛项目、个人作品。",
             });
           }
           await saveSession(id, session);
           return NextResponse.json({ stage: "EXPERIENCE", ok: true });
         }
         case "PROJECTS": {
-          if (data.project) {
-            session.projects.push({ id: session.projects.length, ...data.project, followups: [], completed: true });
+          const projList = data.projects || (data.project ? [data.project] : []);
+          for (const p of projList) {
+            session.projects.push({
+              id: session.projects.length,
+              name: p.name, background: p.background, role: p.role, tools: p.tools, results: p.results,
+              followups: [], completed: true,
+            });
           }
           if (data.finished) {
             session.stage = "SKILLS";

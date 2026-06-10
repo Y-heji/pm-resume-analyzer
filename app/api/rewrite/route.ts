@@ -24,17 +24,18 @@ export async function POST(req: Request) {
     }
 
     // Deep rewrite: check guest trial cookie first, then logged-in entitlements
+    let guestToken: string | null = null;
+
     if (deep === true) {
       let consumed = false;
 
-      // Try guest trial cookie
       const guestCookie = req.cookies.get("guest_trial")?.value;
       if (guestCookie) {
         try {
           const { payload } = await jwtVerify(guestCookie, JWT_SECRET);
           const remaining = (payload as any).guest_resume || 0;
           if (remaining > 0) {
-            const newToken = await new (await import("jose")).SignJWT({
+            guestToken = await new (await import("jose")).SignJWT({
               guest_resume: remaining - 1,
               guest_interviews: (payload as any).guest_interviews || 0,
             })
@@ -42,11 +43,6 @@ export async function POST(req: Request) {
               .setExpirationTime("24h")
               .sign(JWT_SECRET);
             consumed = true;
-            const res = NextResponse.json({});
-            res.cookies.set("guest_trial", newToken, {
-              httpOnly: true, secure: true, sameSite: "lax", maxAge: 86400, path: "/",
-            });
-            // We can't easily return this response mid-stream, so just consume and continue
           }
         } catch {}
       }
@@ -67,7 +63,13 @@ export async function POST(req: Request) {
 
     const result = await rewriteResume(resumeText, jdText, deep === true);
     await redis.set(`rewrite:${result.id}`, JSON.stringify(result), { ex: 86400 }).catch(() => {});
-    return NextResponse.json(result);
+    const finalRes = NextResponse.json(result);
+    if (guestToken) {
+      finalRes.cookies.set("guest_trial", guestToken, {
+        httpOnly: true, secure: true, sameSite: "lax", maxAge: 86400, path: "/",
+      });
+    }
+    return finalRes;
   } catch (err) {
     const message =
       err instanceof Error ? err.message : "改写失败，请重试";
