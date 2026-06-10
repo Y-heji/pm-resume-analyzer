@@ -52,6 +52,15 @@ export default function Home() {
         免费开始分析
       </Link>
 
+      <div className="mt-3 flex justify-center">
+        <Link
+          href="/interview-gen"
+          className="inline-flex items-center gap-1.5 px-6 py-2.5 bg-white border-2 border-gray-200 text-gray-700 font-medium rounded-lg hover:border-blue-300 hover:text-blue-600 transition-colors text-sm"
+        >
+          ✨ 还没有简历？AI 帮你生成
+        </Link>
+      </div>
+
       {/* Experience code entry */}
       <div className="mt-6 flex justify-center">
         <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl px-4 py-3 inline-flex items-center gap-2 text-sm">

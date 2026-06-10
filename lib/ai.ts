@@ -92,6 +92,20 @@ ${jdText}
 }`;
 }
 
+export async function callLLM(prompt: string, systemPrompt?: string): Promise<string> {
+  const client = getClient();
+  const response = await client.chat.completions.create({
+    model: process.env.LLM_MODEL_NAME || "deepseek-chat",
+    messages: [
+      { role: "system", content: systemPrompt || "你是一个专业的助手。" },
+      { role: "user", content: prompt },
+    ],
+    temperature: 0.7,
+    max_tokens: 4096,
+  });
+  return response.choices[0]?.message?.content || "";
+}
+
 export async function analyzeResume(
   resumeText: string,
   jdText: string,
