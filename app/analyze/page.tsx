@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import FileUpload from "@/components/file-upload";
 import { jobDatabase, industries, searchJobs, categoryTree } from "@/lib/job-database";
 import { track } from "@/lib/analytics";
@@ -170,6 +171,12 @@ export default function AnalyzePage() {
           <label className="block text-sm font-medium text-gray-700 mb-2">
             步骤 1：上传简历（PDF）
           </label>
+          <div className="flex items-center justify-between mb-2">
+            <span></span>
+            <Link href="/interview-gen" className="text-xs text-blue-600 hover:text-blue-700 font-medium">
+              ✨ 还没有简历？
+            </Link>
+          </div>
           <FileUpload
             onParsed={(text, name) => {
               setResumeText(text);
