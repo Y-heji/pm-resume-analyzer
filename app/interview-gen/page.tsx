@@ -58,8 +58,15 @@ export default function InterviewGenPage() {
     } catch {}
   };
 
-  // Restore from sessionStorage on mount
+  // Check URL params for direct session load
   useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const loadId = params.get("session");
+    if (loadId) {
+      loadSession(loadId);
+      return;
+    }
+    // Restore from sessionStorage on mount
     try {
       const saved = sessionStorage.getItem("iv_session");
       if (saved) {
@@ -90,6 +97,30 @@ export default function InterviewGenPage() {
     } catch {}
     startSession();
   }, []);
+
+  const loadSession = async (sid: string) => {
+    setLoading(true);
+    try {
+      const r = await fetch(`/api/interview-gen?sessionId=${sid}`);
+      const d = await r.json();
+      if (d.error) throw new Error(d.error);
+      setSessionId(sid);
+      if (d.stage === "SKILLS" && d.generatedResume) {
+        setResume(d.generatedResume);
+        setRecommendations(d.recommendations || []);
+        setStage("DONE");
+      } else {
+        // Restore in-progress session
+        setStage(d.stage || "BASIC_INFO");
+        setBasicInfo(d.basicInfo || {});
+        setCareerTarget(d.careerTarget || {});
+        setExperiences(d.experiences || []);
+        setProjects(d.projects || []);
+        setSkills(d.skills || { hardSkills: [], certificates: "", languages: "" });
+      }
+    } catch { setError("加载会话失败"); }
+    finally { setLoading(false); }
+  };
 
   const startSession = async () => {
     setLoading(true);
@@ -363,6 +394,9 @@ function StageBasicInfo({ data, onChange }: { data: Record<string, string>; onCh
       <h3 className="text-sm font-bold text-gray-900 mb-4">📋 基本信息</h3>
       <div className="grid grid-cols-2 gap-3">
         <InputField label="姓名" value={data.name || ""} onChange={v => onChange({ ...data, name: v })} placeholder="你的真实姓名" />
+        <InputField label="出生年月" value={data.birth || ""} onChange={v => onChange({ ...data, birth: v })} placeholder="如：2002.06" />
+        <InputField label="手机" value={data.phone || ""} onChange={v => onChange({ ...data, phone: v })} placeholder="如：138xxxx" />
+        <InputField label="邮箱" value={data.email || ""} onChange={v => onChange({ ...data, email: v })} placeholder="如：chen@qq.com" />
         <SelectField label="学历" value={data.degree || ""} onChange={v => onChange({ ...data, degree: v })} options={["本科", "硕士", "博士", "大专"]} />
         <InputField label="学校" value={data.school || ""} onChange={v => onChange({ ...data, school: v })} placeholder="如：北京大学" />
         <InputField label="专业" value={data.major || ""} onChange={v => onChange({ ...data, major: v })} placeholder="如：计算机科学" />
@@ -664,9 +698,14 @@ function ResumeView({ resume }: { resume: any }) {
           <p className="text-sm mt-1.5" style={{ color: "#475569" }}>
             {finalResume?.header?.role || ""}
           </p>
-          <p className="text-xs mt-1" style={{ color: "#64748b" }}>
-            {finalResume?.header?.contact || ""}
+          <p className="text-xs mt-0.5" style={{ color: "#64748b" }}>
+            {finalResume?.header?.subtitle || finalResume?.header?.contact || ""}
           </p>
+          {finalResume?.header?.contact && (
+            <p className="text-xs mt-0.5" style={{ color: "#64748b" }}>
+              {finalResume.header.contact}
+            </p>
+          )}
         </div>
 
         <div className="px-10 py-6 space-y-8">
