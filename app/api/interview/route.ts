@@ -109,7 +109,7 @@ export async function POST(req: Request) {
       if (!sessionId || !answer) {
         return NextResponse.json({ error: "缺少 sessionId 或 answer" }, { status: 400 });
       }
-      let session = loadSession(sessionId) || freeSessions.get(sessionId);
+      let session = (await loadSession(sessionId)) || freeSessions.get(sessionId);
       if (!session) return NextResponse.json({ error: "会话不存在" }, { status: 404 });
       if (session.status === "completed") {
         return NextResponse.json({ action: "end", step: session.currentStep, total: session.plan.questionCount });
@@ -129,7 +129,7 @@ export async function POST(req: Request) {
 
     if (action === "end") {
       if (!sessionId) return NextResponse.json({ error: "缺少 sessionId" }, { status: 400 });
-      let session = loadSession(sessionId) || freeSessions.get(sessionId);
+      let session = (await loadSession(sessionId)) || freeSessions.get(sessionId);
       if (!session) return NextResponse.json({ error: "会话不存在" }, { status: 404 });
 
       session.status = "completed";
