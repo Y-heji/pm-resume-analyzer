@@ -166,18 +166,26 @@ async function startPaid(
   resumeText: string,
   jdText: string
 ): Promise<{ session: InterviewSession; firstQuestion: string }> {
-  const questionCount = 8 + Math.floor(Math.random() * 5);
+  const questionCount = 10 + Math.floor(Math.random() * 3);
 
   const response = await getClient().chat.completions.create({
     model: "deepseek-chat",
     messages: [
       {
         role: "system",
-        content: `你是资深HR+${jdText.slice(0, 50)}领域面试官。前3题为基础HR面试（自我介绍+动机+软技能），后面全部是针对${jdText.slice(0, 30)}岗位的专业深度题。问题基于用户真实经历深度定制。`,
+        content: `你是资深HR+${jdText.slice(0, 50)}领域面试官。前5题必须是中国面试最常问的5类HR问题，每题都需要结合简历中的具体经历来问：
+
+第1题：自我介绍 — "请做个自我介绍，结合你的经历说说为什么适合这个岗位"
+第2题：优缺点 — "你认为自己最大的优点和缺点是什么？请用具体例子说明"
+第3题：困难与挑战 — "你遇到过最大的困难或挑战是什么？你是怎么解决的？"
+第4题：团队协作与冲突 — "你和同事/领导产生过分歧吗？你是怎么处理的？结果如何？"
+第5题：职业规划 — "你未来3-5年的职业规划是什么？为什么这样规划？"
+
+后${questionCount - 5}题全部是针对${jdText.slice(0, 50)}岗位的专业深度题，基于简历经历定制。`,
       },
       {
         role: "user",
-        content: `=== 简历 ===\n${resumeText}\n=== 岗位 ===\n${jdText}\n生成${questionCount}题的专业深度面试方案。前3题HR方向，后续全部岗位专业方向。\n返回JSON（不要markdown）：{"plan":{"difficulty":"初级/中级/高级","duration":"约15-20分钟","questionCount":${questionCount},"focusAreas":["HR基础","岗位专业","项目深挖","业务理解"]},"firstQuestion":{"type":"hr","question":"第1题（自我介绍+岗位理解）"}}`,
+        content: `=== 简历 ===\n${resumeText}\n=== 岗位 ===\n${jdText}\n生成${questionCount}题面试方案。前5题HR（1.自我介绍 2.优缺点 3.困难挑战 4.团队冲突 5.职业规划），后${questionCount-5}题岗位专业。\n返回JSON：{"plan":{"difficulty":"初级/中级/高级","duration":"约20分钟","questionCount":${questionCount},"focusAreas":["自我介绍","优缺点","困难挑战","团队冲突","职业规划","专业能力","业务理解","场景模拟"]},"firstQuestion":{"type":"hr","question":"第1题：请做个自我介绍，结合简历中的具体经历说说为什么适合这个岗位"}}`,
       },
     ],
     temperature: 0.7,
@@ -326,11 +334,19 @@ async function answerPaid(
     messages: [
       {
         role: "system",
-        content: "你是资深面试官。自然地推进面试。追问要针对回答中的细节深挖（数据/逻辑/具体做法），让面试者展示真实能力。新题要基于用户真实经历。每题最多追问2次。",
+        content: `你是资深面试官。规则：
+- HR题（第1-5题）不追问。用户答完直接过渡到下一题
+- 专业题（第6-${session.plan.questionCount}题）每题最多追问2次，深挖数据/逻辑/做法
+- 新题基于用户真实经历，不泛泛而问
+
+HR出题：
+${session.currentStep === 1 ? "→ 第1题：自我介绍。让用户用1分钟介绍自己，结合经历说为什么适合这个岗位" : ""}${session.currentStep === 2 ? "→ 第2题：优缺点。问最大的优点和缺点是什么，要求举例" : ""}${session.currentStep === 3 ? "→ 第3题：困难与挑战。问遇到过最大的困难是什么，怎么解决的" : ""}${session.currentStep === 4 ? "→ 第4题：团队协作与冲突。问和同事/领导产生过分歧吗，怎么处理的" : ""}${session.currentStep === 5 ? "→ 第5题：职业规划。问未来3-5年的规划，为什么这样规划" : ""}
+
+专业阶段（第6-${session.plan.questionCount}题）：岗位专业能力、业务理解、场景模拟`,
       },
       {
         role: "user",
-        content: `进度：第${session.currentStep}/${session.plan.questionCount}题 | 当前题追问${followUpCount}/2次\n\n对话历史：\n${truncatedHistory}\n\n用户最新回答("${currentQ}")：${answer.slice(0, 2000)}\n\n判断：\n- 回答不够深入且追问<2次 → action:followUp 追问具体细节\n- 回答充分 → action:nextQuestion 出新题(${session.currentStep < 3 ? "HR方向" : "岗位专业方向"})\n- 已回答${session.plan.questionCount}题 → action:end\n\n返回JSON：{"action":"followUp|nextQuestion|end","question":"追问/新题内容","feedback":"过渡语(可为空)"}`,
+        content: `进度：第${session.currentStep}/${session.plan.questionCount}题 | 当前题追问${followUpCount}/2次\n\n对话历史：\n${truncatedHistory}\n\n用户最新回答("${currentQ}")：${answer.slice(0, 2000)}\n\n判断：\n- 回答不够深入且追问<2次 → action:followUp 追问具体细节\n- 回答充分 → action:nextQuestion 出新题(${session.currentStep < 5 ? "HR方向" : "岗位专业方向"})\n- 已回答${session.plan.questionCount}题 → action:end\n\n返回JSON：{"action":"followUp|nextQuestion|end","question":"追问/新题内容","feedback":"过渡语(可为空)"}`,
       },
     ],
     temperature: 0.7,
@@ -340,6 +356,20 @@ async function answerPaid(
   const text = response.choices[0]?.message?.content || "";
   let parsed: any;
   try { parsed = JSON.parse(extractJson(text)); } catch { parsed = { action: "nextQuestion", question: "请分享一个相关的工作经历？", feedback: "" }; }
+
+  // Hard constraint: HR questions (1-5) never follow up
+  if (session.currentStep <= 5 && parsed.action === "followUp") {
+    parsed.action = "nextQuestion";
+    parsed.question = "";
+    parsed.feedback = "";
+  }
+
+  // Hard constraint: max 2 follow-ups per professional question
+  if (followUpCount >= 2 && parsed.action === "followUp") {
+    parsed.action = "nextQuestion";
+    parsed.question = `好的，我们进入下一题。请分享一个相关的工作经历。`;
+    parsed.feedback = "";
+  }
 
   if (parsed.action === "followUp") {
     if (lastFollowUp) {
