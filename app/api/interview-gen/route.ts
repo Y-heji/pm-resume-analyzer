@@ -195,7 +195,7 @@ ${i+1}. ${p.name}
     company: e.company,
     title: e.title,
     time: e.time,
-    bullets: (e.description + (e.followups.length ? "。" + e.followups.join("。") : ""))
+    bullets: e.description
       .split(/[。；;]/).map((b: string) => b.trim()).filter((b: string) => b.length > 4),
   }));
 
@@ -365,7 +365,7 @@ export async function POST(req: Request) {
             session.experiences.push({
               id: session.experiences.length,
               company: exp.company, role: exp.role, duration: exp.duration, description: exp.description,
-              followups: [], completed: true,
+              followups: exp.followups || [], completed: true,
             });
           }
           if (data.finished) {

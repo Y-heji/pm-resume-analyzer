@@ -34,7 +34,7 @@ export default function InterviewGenPage() {
   // Experience sub-state
   const [currentExp, setCurrentExp] = useState({ company: "", role: "", duration: "", description: "" });
   const [currentProject, setCurrentProject] = useState({ name: "", background: "", role: "", tools: "", results: "" });
-  const [followups, setFollowups] = useState<string[]>([]);
+  const [followups, setFollowups] = useState<Array<{ question: string; answer: string }>>([]);
   const [followupLoading, setFollowupLoading] = useState(false);
 
   // AI messages
@@ -46,6 +46,35 @@ export default function InterviewGenPage() {
   const [recommendations, setRecommendations] = useState<any[]>([]);
   const [tabIdx, setTabIdx] = useState(0);
   const chatEndRef = useRef<HTMLDivElement>(null);
+  const lastFollowupTrigger = useRef("");
+
+  const handleFollowup = async () => {
+    const desc = currentExp.description?.trim() || "";
+    if (!desc || desc.length < 10) return;
+    setFollowupLoading(true);
+    try {
+      const r = await fetch("/api/interview-gen", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "followup", sessionId, description: desc, context: "工作" }),
+      });
+      const d = await r.json();
+      setFollowups(d.questions?.map((q: string) => ({ question: q, answer: "" })) || []);
+    } catch { setFollowups([]); }
+    finally { setFollowupLoading(false); }
+  };
+
+  // Auto-trigger AI followup on typing pause (debounced)
+  useEffect(() => {
+    if (stage !== "EXPERIENCE") return;
+    const desc = currentExp.description?.trim() || "";
+    if (desc.length < 10) { setFollowups([]); return; }
+    if (desc === lastFollowupTrigger.current || followupLoading) return;
+    const timer = setTimeout(() => {
+      lastFollowupTrigger.current = desc;
+      handleFollowup();
+    }, 1500); // debounce: trigger 1.5s after user stops typing
+    return () => clearTimeout(timer);
+  }, [currentExp.description, stage]);
 
   // Persist state to sessionStorage on every stage change
   const persistState = (sid: string, stg: Stage, data: any) => {
@@ -186,19 +215,6 @@ export default function InterviewGenPage() {
     } catch {}
   };
 
-  const handleFollowup = async () => {
-    if (!currentExp.description.trim()) return;
-    setFollowupLoading(true);
-    try {
-      const r = await fetch("/api/interview-gen", {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "followup", sessionId, description: currentExp.description, context: "工作" }),
-      });
-      const d = await r.json();
-      setFollowups(d.questions || []);
-    } catch { setFollowups([]); }
-    finally { setFollowupLoading(false); }
-  };
 
   const handleBack = async () => {
     const d = await callApi("back");
@@ -215,7 +231,9 @@ export default function InterviewGenPage() {
 
   const addExperience = () => {
     if (!currentExp.company || !currentExp.description) return;
-    const newExp = { ...currentExp, id: experiences.length, followups: [], completed: true };
+    const fuAnswers = followups.filter(f => f.answer.trim()).map(f => f.answer);
+    const mergedDesc = fuAnswers.length > 0 ? `${currentExp.description}。${fuAnswers.join("。")}` : currentExp.description;
+    const newExp = { ...currentExp, id: experiences.length, followups: fuAnswers, description: mergedDesc, completed: true };
     setExperiences([...experiences, newExp]);
     setCurrentExp({ company: "", role: "", duration: "", description: "" });
     setFollowups([]);
@@ -342,7 +360,7 @@ export default function InterviewGenPage() {
           <StageExperience
             current={currentExp} onChange={setCurrentExp} onAdd={addExperience}
             experiences={experiences} followups={followups}
-            onFollowup={handleFollowup} followupLoading={followupLoading}
+            onFollowup={handleFollowup} onFollowupChange={setFollowups} followupLoading={followupLoading}
           />
         )}
         {stage === "PROJECTS" && (
@@ -366,8 +384,10 @@ export default function InterviewGenPage() {
           else if (stage === "CAREER_TARGET") nextStage(careerTarget);
           else if (stage === "EXPERIENCE") {
             // First: save current form if filled, otherwise use what's already added
+            const fuText = followups.filter((f: any) => f.answer?.trim()).map((f: any) => f.answer).join("。");
+            const mergedDesc = fuText ? `${currentExp.description || ""}。${fuText}` : (currentExp.description || "");
             const newExp = currentExp.company
-              ? { ...currentExp, id: experiences.length, followups: [], completed: true }
+              ? { ...currentExp, id: experiences.length, followups: followups.filter((f: any) => f.answer?.trim()).map((f: any) => f.answer), description: mergedDesc, completed: true }
               : null;
             const allExps = newExp ? [...experiences, newExp] : experiences;
             if (allExps.length === 0) {
@@ -379,7 +399,7 @@ export default function InterviewGenPage() {
               setFollowups([]);
             }
             // Send ALL experiences to API
-            const batchData: any = { experiences: allExps.map(e => ({ company: e.company, role: e.role, duration: e.duration, description: e.description })), finished: true };
+            const batchData: any = { experiences: allExps.map(e => ({ company: e.company, role: e.role, duration: e.duration, description: e.description, followups: e.followups || [] })), finished: true };
             nextStage(batchData);
           } else if (stage === "PROJECTS") {
             const newProj = currentProject.name
@@ -459,7 +479,7 @@ function StageCareerTarget({ data, onChange, suggestions, basicInfo }: {
   );
 }
 
-function StageExperience({ current, onChange, onAdd, experiences, followups, onFollowup, followupLoading }: any) {
+function StageExperience({ current, onChange, onAdd, experiences, followups, onFollowup, onFollowupChange, followupLoading }: any) {
   return (
     <div className="space-y-3">
       <h3 className="text-sm font-bold text-gray-900 mb-4">💼 经历挖掘</h3>
@@ -480,22 +500,28 @@ function StageExperience({ current, onChange, onAdd, experiences, followups, onF
       {/* AI Followup — always visible when there's content */}
       {current.description.trim().length > 10 && (
         <div className="space-y-2">
-          {followups.length === 0 && !followupLoading && (
-            <button onClick={onFollowup}
-              className="text-xs text-blue-600 hover:text-blue-700 font-medium">
-              🤖 AI 追问 · STAR 补全
-            </button>
-          )}
           {followupLoading && (
             <p className="text-xs text-blue-400">AI 追问生成中...</p>
           )}
           {followups.length > 0 && (
-            <div className="bg-yellow-50 border border-yellow-100 rounded-xl p-3 space-y-2">
-              <p className="text-xs font-semibold text-yellow-700 mb-1">💡 AI 追问 — 帮你补全细节</p>
-              {followups.map((q: string, i: number) => (
-                <div key={i} className="flex items-start gap-2 text-sm text-yellow-800">
-                  <span className="text-xs mt-0.5 shrink-0">{i + 1}.</span>
-                  <span>{q}</span>
+            <div className="bg-yellow-50 border border-yellow-100 rounded-xl p-3 space-y-3">
+              <p className="text-xs font-semibold text-yellow-700 mb-1">💡 AI 追问 — 补充更多细节，让简历更丰满</p>
+              {followups.map((f: any, i: number) => (
+                <div key={i} className="space-y-1">
+                  <div className="flex items-start gap-2 text-sm text-yellow-800">
+                    <span className="text-xs mt-0.5 shrink-0">{i + 1}.</span>
+                    <span>{f.question}</span>
+                  </div>
+                  <input
+                    className="w-full px-3 py-1.5 border border-yellow-200 rounded-lg text-xs bg-white placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-yellow-400"
+                    placeholder="在这里补充..."
+                    value={f.answer}
+                    onChange={e => {
+                      const next = [...followups];
+                      next[i] = { ...next[i], answer: e.target.value };
+                      onFollowupChange(next);
+                    }}
+                  />
                 </div>
               ))}
             </div>
