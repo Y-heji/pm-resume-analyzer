@@ -1,6 +1,6 @@
 import OpenAI from "openai";
 import type { AnalysisResult } from "./types";
-import { extractJson } from "./json-utils";
+import { extractJson, repairJSON } from "./json-utils";
 import { getAIClient } from "./ai-config";
 import { sanitizePrompt } from "./sanitize-prompt";
 
@@ -115,20 +115,36 @@ export async function analyzeResume(
   deep = false
 ): Promise<AnalysisResult> {
   let lastError: Error | null = null;
+  let previousText = "";
 
   for (let attempt = 0; attempt < 2; attempt++) {
     try {
+      const messages: Array<{ role: string; content: string }> = [
+        { role: "system", content: SYSTEM_PROMPT },
+        { role: "user", content: buildUserPrompt(resumeText, jdText, deep) },
+      ];
+
+      // On retry: tell AI its last JSON was broken, show the raw output
+      if (attempt > 0 && previousText) {
+        messages.push({
+          role: "assistant",
+          content: `[previous attempt output - INVALID JSON] ${previousText.slice(0, 1000)}`,
+        });
+        messages.push({
+          role: "user",
+          content: "Your previous response was NOT valid JSON. I got a parse error. Please respond with ONLY valid JSON. No markdown, no extra text. Just the JSON object. Make sure all strings are properly quoted and all braces match.",
+        });
+      }
+
       const response = await getClient().chat.completions.create({
         model: "deepseek-chat",
-        messages: [
-          { role: "system", content: SYSTEM_PROMPT },
-          { role: "user", content: buildUserPrompt(resumeText, jdText, deep) },
-        ],
-        temperature: 0.3,
+        messages: messages as any,
+        temperature: attempt === 0 ? 0.3 : 0.1, // lower temp on retry
         max_tokens: 8000,
       });
 
       const text = response.choices[0]?.message?.content || "";
+      previousText = text;
       const jsonStr = extractJson(text);
       const parsed = JSON.parse(jsonStr);
 

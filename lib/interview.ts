@@ -119,23 +119,25 @@ async function startFree(
   resumeText: string,
   jdText: string
 ): Promise<{ session: InterviewSession; firstQuestion: string }> {
-  const bankQuestions = getQuestionsForCategory("hr").map(q => q.question).join("\n");
 
   const response = await getClient().chat.completions.create({
     model: "deepseek-chat",
     messages: [
       {
         role: "system",
-        content: `你是资深HR面试官，正对候选人进行面试。你需要深度阅读候选人简历，提出5个针对性问题。每个问题之后会有一个追问来深挖细节。
+        content: `你是资深HR面试官。请基于候选人的简历，提出5道中国面试最常问的标准问题。每题30-50字，必须引用简历中的具体经历。5题不追问——问完就过。
 
-参考题库（借鉴思路，个性化出题）：
-${bankQuestions}
+第1题：自我介绍 — "请做个自我介绍，结合简历中的具体经历说说为什么适合这个岗位"
+第2题：优缺点 — "你认为自己最大的优点和缺点是什么？请用具体例子说明"
+第3题：困难与挑战 — "你遇到过最大的困难或挑战是什么？你是怎么解决的？"
+第4题：团队协作与冲突 — "你和同事或领导产生过分歧吗？你是怎么处理的？"
+第5题：职业规划 — "你未来3-5年的职业规划是什么？为什么这样规划？"
 
-要求：每个问题必须引用简历中的具体项目或经历，让候选人感受到面试官认真看了简历。`,
+每题都要求用户用简历中的具体经历回答。${resumeText.length > 500 ? "简历较长，请精读后提取关键经历出题。" : ""}`,
       },
       {
         role: "user",
-        content: `=== 候选人简历 ===\n${resumeText}\n=== 目标岗位 ===\n${jdText}\n\n你是专业HR，请从以下角度各出1题，每题必须引用简历中的具体经历：\n1. 自我介绍与岗位匹配度\n2. 核心专业能力考察\n3. 项目经历深挖\n4. 问题解决与应变能力\n5. 职业规划与求职动机\n\n每题30-50字，具体、个性化。返回JSON：{"plan":{"difficulty":"初/中/高级","duration":"约10分钟","questionCount":5,"focusAreas":["岗位匹配","核心能力","项目经验","问题解决","职业规划"]},"questions":[{"type":"hr","question":"Q1"},{"type":"hr","question":"Q2"},{"type":"hr","question":"Q3"},{"type":"hr","question":"Q4"},{"type":"hr","question":"Q5"}]}`,
+        content: `=== 简历 ===\n${resumeText}\n=== 岗位 ===\n${jdText}\n\n生成5题面试方案，每题必须结合简历具体经历。返回JSON：{"plan":{"difficulty":"初/中/高级","duration":"约10分钟","questionCount":5,"focusAreas":["自我介绍","优缺点","困难挑战","团队冲突","职业规划"]},"questions":[{"type":"hr","question":"第1题"},{"type":"hr","question":"第2题"},{"type":"hr","question":"第3题"},{"type":"hr","question":"第4题"},{"type":"hr","question":"第5题"}]}`,
       },
     ],
     temperature: 0.7,
@@ -145,14 +147,14 @@ ${bankQuestions}
   const text = response.choices[0]?.message?.content || "";
   const parsed = JSON.parse(extractJson(text));
 
-  const firstQ = parsed.questions?.[0]?.question || "请做一下自我介绍";
+  const firstQ = parsed.questions?.[0]?.question || "请做个自我介绍，结合你的经历说说为什么适合这个岗位？";
 
   const session: InterviewSession = {
     id: crypto.randomUUID(),
     resumeText,
     jdText,
     tier: "free",
-    plan: parsed.plan,
+    plan: parsed.plan || { difficulty: "中级", duration: "约10分钟", questionCount: 5, focusAreas: ["自我介绍","优缺点","困难挑战","团队冲突","职业规划"] },
     questions: [{ id: 1, type: "hr" as const, question: firstQ, answer: "", followUps: [] }],
     currentStep: 1,
     status: "active",

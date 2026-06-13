@@ -183,7 +183,12 @@ export default function RewritePage() {
       <div className="max-w-2xl mx-auto px-6 py-16 text-center">
         <p className="text-red-500 mb-4">{error}</p>
         <button
-          onClick={() => router.push(`/result/${id}`)}
+          onClick={() => {
+            if (typeof window !== "undefined" && result) {
+              try { sessionStorage.setItem(id, JSON.stringify(result)); } catch {}
+            }
+            router.push(`/result/${id}`);
+          }}
           className="px-6 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors text-sm"
         >
           返回分析报告
@@ -452,9 +457,8 @@ export default function RewritePage() {
         <UnlockCTA premiumCount={premiumCount} />
       </div>
 
-      {/* Premium CTAs: deep optimize + pro interview */}
-      <div className="mt-10 grid grid-cols-2 gap-4">
-        {/* Deep Optimize CTA */}
+      {/* Premium CTAs: deep optimize only */}
+      <div className="mt-10">
         <div className="relative rounded-2xl bg-gradient-to-br from-amber-500 to-orange-600 p-6 text-center shadow-lg">
           <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-white/10 to-transparent pointer-events-none" />
           <div className="relative">
@@ -474,32 +478,31 @@ export default function RewritePage() {
             </button>
           </div>
         </div>
+      </div>
 
-        {/* Pro Interview CTA */}
-        <div className="relative rounded-2xl bg-gradient-to-br from-purple-600 to-indigo-700 p-6 text-center shadow-lg">
-          <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-white/10 to-transparent pointer-events-none" />
-          <div className="relative">
-            <div className="inline-flex items-center justify-center w-10 h-10 rounded-xl bg-white/20 mb-3 text-xl">🎤</div>
-            <h3 className="text-base font-bold text-white mb-1">专业面试</h3>
-            <p className="text-xs text-purple-100 mb-4">AI追问 · 5维评分 · 详细报告 · 通过概率</p>
-            <div className="flex flex-wrap justify-center gap-1.5 mb-4">
-              {["专业追问", "5维评分", "面试报告", "通过率评估", "改进建议"].map(t => (
-                <span key={t} className="text-[10px] px-2 py-0.5 rounded-full bg-white/15 text-purple-50">{t}</span>
-              ))}
-            </div>
-            <button
-              onClick={() => router.push(`/interview/${id}?deep=1`)}
-              className="w-full py-2.5 bg-white text-indigo-600 font-bold rounded-xl hover:bg-indigo-50 transition-colors text-sm"
-            >
-              开始面试 →
-            </button>
-          </div>
+      {/* AI 面试入口 */}
+      <div className="mt-8 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100 rounded-2xl p-5">
+        <h3 className="text-sm font-bold text-gray-900 mb-1">简历改完了，面试练一下？</h3>
+        <p className="text-xs text-gray-500 mb-4">AI 面试官针对你的简历和岗位出题，练完出诊断报告</p>
+        <div className="grid grid-cols-2 gap-3">
+          <button
+            onClick={() => router.push(`/interview/${id}`)}
+            className="py-3 bg-white border-2 border-blue-200 text-blue-700 text-sm font-bold rounded-xl hover:bg-blue-50 transition-colors"
+          >
+            🆓 免费面试 · 5 题
+          </button>
+          <button
+            onClick={() => router.push(`/interview/${id}?deep=1`)}
+            className="py-3 bg-gradient-to-r from-purple-600 to-indigo-700 text-white text-sm font-bold rounded-xl hover:from-purple-700 hover:to-indigo-800 transition-colors shadow-md"
+          >
+            👑 专业面试 · 10 题
+          </button>
         </div>
+        <p className="text-[10px] text-gray-400 mt-3 text-center">免费版 5 题 + 追问 | 专业版 10-12 题 + 深度追问 + 逐题评分 + 通过概率</p>
       </div>
 
       {/* Bottom Actions */}
-      <div className="mt-10 space-y-3">
-        <div className="flex gap-3 justify-center flex-wrap">
+      <div className="mt-6 flex gap-3 justify-center flex-wrap">
           <button
             onClick={() => {
               sessionStorage.setItem(`${id}_preview`, "full");
@@ -514,19 +517,17 @@ export default function RewritePage() {
             预览并导出 PDF
           </button>
           <button
-            onClick={() => router.push(`/interview/${id}`)}
-            className="px-5 py-2.5 bg-blue-600 text-white text-sm font-medium rounded-xl hover:bg-blue-700 transition-all inline-flex items-center gap-2"
-          >
-            免费AI面试
-          </button>
-          <button
-            onClick={() => router.push(`/result/${id}`)}
+            onClick={() => {
+            if (typeof window !== "undefined" && result) {
+              try { sessionStorage.setItem(id, JSON.stringify(result)); } catch {}
+            }
+            router.push(`/result/${id}`);
+          }}
             className="px-5 py-2.5 bg-gray-100 text-gray-700 text-sm rounded-xl hover:bg-gray-200 transition-colors"
           >
             返回分析报告
           </button>
         </div>
-      </div>
     </div>
   );
 }

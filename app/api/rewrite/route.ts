@@ -4,8 +4,13 @@ import { getCurrentUser } from "@/lib/auth";
 import { getEntitlements, consumeResumeOptimize } from "@/lib/credits";
 import { redis } from "@/lib/auth";
 import { jwtVerify } from "jose";
+import crypto from "crypto";
 
 const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET || "pm-resume-jwt-2026-heji-secret-key");
+
+function dedupKey(resumeText: string, jdText: string): string {
+  return crypto.createHash("md5").update(resumeText.slice(0, 800) + "|" + jdText.slice(0, 300)).digest("hex");
+}
 
 export async function POST(req: Request) {
   try {
@@ -25,6 +30,7 @@ export async function POST(req: Request) {
 
     // Deep rewrite: check guest trial cookie first, then logged-in entitlements
     let guestToken: string | null = null;
+    let email: string | null = null;
 
     if (deep === true) {
       let consumed = false;
@@ -49,10 +55,21 @@ export async function POST(req: Request) {
 
       // Fall back to logged-in entitlements
       if (!consumed) {
-        const email = await getCurrentUser();
+        email = await getCurrentUser();
         if (!email) {
           return NextResponse.json({ error: "深度优化需要先登录或激活体验码" }, { status: 401 });
         }
+
+        // Dedup check: same resume + same JD → return cached result, don't consume credits
+        const dkey = dedupKey(resumeText, jdText);
+        const cachedId = email ? await redis.get<string>(`rewrite_dedup:${email}:${dkey}`).catch(() => null) : null;
+        if (cachedId) {
+          const cachedRaw = await redis.get<string>(`rewrite:${cachedId}`).catch(() => null);
+          if (cachedRaw) {
+            return NextResponse.json(typeof cachedRaw === "string" ? JSON.parse(cachedRaw) : cachedRaw);
+          }
+        }
+
         const e = await getEntitlements(email);
         if (e.resume_optimize_left <= 0) {
           return NextResponse.json({ error: "AI深度优化次数不足，请先兑换" }, { status: 403 });
@@ -63,6 +80,12 @@ export async function POST(req: Request) {
 
     const result = await rewriteResume(resumeText, jdText, deep === true);
     await redis.set(`rewrite:${result.id}`, JSON.stringify(result), { ex: 86400 }).catch(() => {});
+
+    // Save dedup mapping (24h TTL matching rewrite cache)
+    if (email) {
+      const dkey = dedupKey(resumeText, jdText);
+      await redis.set(`rewrite_dedup:${email}:${dkey}`, result.id, { ex: 86400 }).catch(() => {});
+    }
     const finalRes = NextResponse.json(result);
     if (guestToken) {
       finalRes.cookies.set("guest_trial", guestToken, {

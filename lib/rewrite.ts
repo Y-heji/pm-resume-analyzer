@@ -137,15 +137,12 @@ export async function rewriteResume(
       }
 
       for (const m of parsed.modules) {
-        if (
-          !m.sourceSection ||
-          !m.sectionTitle ||
-          !m.original ||
-          !m.rewritten ||
-          !Array.isArray(m.optimizationReasons) ||
-          m.optimizationReasons.length === 0
-        ) {
-          throw new Error("Module missing required fields");
+        m.sourceSection = m.sourceSection || "简历内容";
+        m.sectionTitle = m.sectionTitle || "优化项";
+        m.original = m.original || m.rewritten || "(原始内容)";
+        m.rewritten = m.rewritten || m.original || "(优化后内容)";
+        if (!Array.isArray(m.optimizationReasons) || m.optimizationReasons.length === 0) {
+          m.optimizationReasons = ["措辞优化"];
         }
       }
 

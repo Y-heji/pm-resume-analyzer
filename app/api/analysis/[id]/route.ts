@@ -1,22 +1,14 @@
 import { NextResponse } from "next/server";
-import { redis, getCurrentUser } from "@/lib/auth";
+import { redis } from "@/lib/auth";
 
-async function isAuthorized(req: Request): Promise<boolean> {
-  const email = await getCurrentUser();
-  if (email) return true;
-  // Guest cookie check
-  const guestCookie = req.cookies.get("guest_trial")?.value;
-  if (guestCookie) return true;
-  return false;
-}
+// No strict auth required for reading analysis — protected by unguessable
+// UUID + 24h Redis TTL. resume/jd field queries are needed by the rewrite
+// page which may be accessed by non-logged-in users.
 
 export async function GET(
   req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  if (!(await isAuthorized(req))) {
-    return NextResponse.json({ error: "请先登录" }, { status: 401 });
-  }
   const { id } = await params;
   const url = new URL(req.url);
   const field = url.searchParams.get("field");

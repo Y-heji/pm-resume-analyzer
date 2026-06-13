@@ -135,6 +135,27 @@ export default function OptimizePage() {
         ))}
       </div>
 
+      {/* AI 面试入口 */}
+      <div className="mb-10 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100 rounded-2xl p-5">
+        <h3 className="text-sm font-bold text-gray-900 mb-1">简历改完了，面试练一下？</h3>
+        <p className="text-xs text-gray-500 mb-4">AI 面试官针对你的简历和岗位出题，练完出诊断报告</p>
+        <div className="grid grid-cols-2 gap-3">
+          <button
+            onClick={() => router.push(`/interview/${id}`)}
+            className="py-3 bg-white border-2 border-blue-200 text-blue-700 text-sm font-bold rounded-xl hover:bg-blue-50 transition-colors"
+          >
+            🆓 免费面试 · 5 题
+          </button>
+          <button
+            onClick={() => router.push(`/interview/${id}?deep=1`)}
+            className="py-3 bg-gradient-to-r from-purple-600 to-indigo-700 text-white text-sm font-bold rounded-xl hover:from-purple-700 hover:to-indigo-800 transition-colors shadow-md"
+          >
+            👑 专业面试 · 10 题
+          </button>
+        </div>
+        <p className="text-[10px] text-gray-400 mt-3 text-center">免费版 5 题 + 追问 | 专业版 10-12 题 + 深度追问 + 逐题评分 + 通过概率</p>
+      </div>
+
       {/* Actions */}
       <div className="flex gap-3 justify-center flex-wrap">
         <button
