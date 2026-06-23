@@ -12,13 +12,16 @@ export function extractJson(text: string): string {
 }
 
 export function repairJSON(json: string): string {
-  // 1. Strip trailing commas: {"a":1,} → {"a":1}
+  // 1. Escape raw control chars inside JSON strings that should be \n \t etc.
+  json = escapeControlCharsInStrings(json);
+
+  // 2. Strip trailing commas: {"a":1,} → {"a":1}
   json = json.replace(/,(\s*[}\]])/g, '$1');
 
-  // 2. Fix unquoted keys: {key: → {"key": and ,key: → ,"key":
+  // 3. Fix unquoted keys: {key: → {"key": and ,key: → ,"key":
   json = json.replace(/([{,]\s*)([a-zA-Z_一-鿿][a-zA-Z0-9_一-鿿]*)\s*:/g, '$1"$2":');
 
-  // 3. Close any unmatched braces/brackets
+  // 4. Close any unmatched braces/brackets
   const closeStack: string[] = [];
   let inString = false, escape = false;
   for (const ch of json) {
@@ -32,7 +35,7 @@ export function repairJSON(json: string): string {
     if (ch === ']') { if (closeStack[closeStack.length-1]===']') closeStack.pop(); }
   }
 
-  // 4. If truncated mid-string, close it
+  // 5. If truncated mid-string, close it
   let inStr = false, esc = false;
   for (let i = 0; i < json.length; i++) {
     if (esc) { esc = false; continue; }
@@ -42,4 +45,24 @@ export function repairJSON(json: string): string {
   const suffix = (inStr ? '"' : '') + closeStack.reverse().join('');
 
   return json + suffix;
+}
+
+// Escape literal control chars inside JSON string values
+function escapeControlCharsInStrings(json: string): string {
+  let result = "";
+  let inString = false, escape = false;
+  for (let i = 0; i < json.length; i++) {
+    const ch = json[i];
+    if (escape) { result += ch; escape = false; continue; }
+    if (ch === '\\' && inString) { result += ch; escape = true; continue; }
+    if (ch === '"' && !escape) { inString = !inString; result += ch; continue; }
+    if (inString) {
+      if (ch === '\n') { result += '\\n'; continue; }
+      if (ch === '\r') { result += '\\r'; continue; }
+      if (ch === '\t') { result += '\\t'; continue; }
+      if (ch.charCodeAt(0) < 0x20) { result += '\\u' + ('0000' + ch.charCodeAt(0).toString(16)).slice(-4); continue; }
+    }
+    result += ch;
+  }
+  return result;
 }
